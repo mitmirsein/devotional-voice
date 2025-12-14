@@ -93,14 +93,17 @@ export class TranscriptionService {
 
     private isValidApiKeyFormat(apiKey: string, provider: ServiceProvider): boolean {
         // Basic validation - check if key has reasonable format
+        const trimmedKey = apiKey.trim();
+
         if (provider === 'openai') {
             // OpenAI keys start with 'sk-' and are reasonably long
-            return apiKey.startsWith('sk-') && apiKey.length > 20;
+            return trimmedKey.startsWith('sk-') && trimmedKey.length > 20;
         } else if (provider === 'groq') {
-            // Groq keys start with 'gsk_' and are reasonably long
-            return apiKey.startsWith('gsk_') && apiKey.length > 20;
+            // Groq keys can have various formats (gsk_, xai-, etc.)
+            // Just check for reasonable length and no whitespace
+            return trimmedKey.length > 20 && !/\s/.test(trimmedKey);
         }
-        return apiKey.length > 10;
+        return trimmedKey.length > 10;
     }
 
     private parseErrorResponse(response: any): TranscriptionError {

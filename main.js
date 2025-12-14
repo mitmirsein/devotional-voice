@@ -29,6 +29,48 @@ __export(main_exports, {
 module.exports = __toCommonJS(main_exports);
 var import_obsidian3 = require("obsidian");
 
+// src/constants.ts
+var MODELS = {
+  openai: "whisper-1",
+  groq: "whisper-large-v3"
+};
+var API_ENDPOINTS = {
+  openai: "https://api.openai.com/v1/audio/transcriptions",
+  groq: "https://api.groq.com/openai/v1/audio/transcriptions"
+};
+var API_CONFIG = {
+  TIMEOUT_MS: 3e4,
+  // 30 seconds
+  MAX_FILE_SIZE_MB: 25,
+  AUDIO_MIME_TYPE: "audio/webm"
+};
+var SUPPORTED_LANGUAGES = [
+  { code: "auto", name: "Auto Detect" },
+  { code: "en", name: "English" },
+  { code: "ko", name: "Korean (\uD55C\uAD6D\uC5B4)" },
+  { code: "ja", name: "Japanese (\u65E5\u672C\u8A9E)" },
+  { code: "zh", name: "Chinese (\u4E2D\u6587)" },
+  { code: "es", name: "Spanish (Espa\xF1ol)" },
+  { code: "fr", name: "French (Fran\xE7ais)" },
+  { code: "de", name: "German (Deutsch)" }
+];
+var ERROR_MESSAGES = {
+  API_KEY_MISSING: "API Key is missing. Please set it in settings.",
+  API_KEY_INVALID_FORMAT: (provider) => `Invalid API key format for ${provider}. Please check your API key.`,
+  TRANSCRIPTION_FAILED: "Transcription failed. Check console for details.",
+  TRANSCRIPTION_TIMEOUT: "Transcription timed out. Please try again.",
+  MICROPHONE_PERMISSION_DENIED: "Microphone access denied. Please allow microphone access in your browser/system settings.",
+  MICROPHONE_NOT_FOUND: "No microphone found. Please connect a microphone and try again.",
+  MICROPHONE_GENERAL_ERROR: "Failed to access microphone. Please check your audio settings.",
+  NO_ACTIVE_RECORDING: "No active recording to stop."
+};
+var SUCCESS_MESSAGES = {
+  RECORDING_STARTED: "\u{1F399}\uFE0F Recording started...",
+  TRANSCRIPTION_COMPLETE: "\u2705 Transcription complete!",
+  SETTINGS_SAVED: (service, lang) => `Settings saved: ${service} / ${lang}`,
+  COPIED_TO_CLIPBOARD: "Text copied to clipboard (No active editor)"
+};
+
 // src/recorder.ts
 var MicrophoneRecorder = class {
   constructor() {
@@ -46,13 +88,13 @@ var MicrophoneRecorder = class {
       this.mediaRecorder.start();
     } catch (error) {
       console.error("Error starting recording:", error);
-      throw error;
+      throw this.parseMediaError(error);
     }
   }
   async stopRecording() {
     return new Promise((resolve, reject) => {
       if (!this.mediaRecorder) {
-        reject(new Error("No active recording"));
+        reject(new Error(ERROR_MESSAGES.NO_ACTIVE_RECORDING));
         return;
       }
       this.mediaRecorder.addEventListener("stop", () => {
@@ -70,6 +112,40 @@ var MicrophoneRecorder = class {
     var _a;
     return ((_a = this.mediaRecorder) == null ? void 0 : _a.state) === "recording";
   }
+  /**
+   * Parse media device errors and provide user-friendly messages
+   */
+  parseMediaError(error) {
+    if (error instanceof DOMException) {
+      switch (error.name) {
+        case "NotAllowedError":
+        case "PermissionDeniedError":
+          return {
+            type: "permission_denied",
+            message: ERROR_MESSAGES.MICROPHONE_PERMISSION_DENIED,
+            originalError: error
+          };
+        case "NotFoundError":
+        case "DevicesNotFoundError":
+          return {
+            type: "not_found",
+            message: ERROR_MESSAGES.MICROPHONE_NOT_FOUND,
+            originalError: error
+          };
+        default:
+          return {
+            type: "general",
+            message: ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR,
+            originalError: error
+          };
+      }
+    }
+    return {
+      type: "general",
+      message: ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR,
+      originalError: error instanceof Error ? error : new Error(String(error))
+    };
+  }
 };
 
 // src/transcription.ts
@@ -77,15 +153,18 @@ var import_obsidian = require("obsidian");
 var TranscriptionService = class {
   async transcribe(audioBlob, apiKey, language, serviceProvider) {
     if (!apiKey) {
-      new import_obsidian.Notice("API Key is missing. Please set it in settings.");
+      new import_obsidian.Notice(ERROR_MESSAGES.API_KEY_MISSING);
       throw new Error("API Key missing");
+    }
+    if (!this.isValidApiKeyFormat(apiKey, serviceProvider)) {
+      new import_obsidian.Notice(ERROR_MESSAGES.API_KEY_INVALID_FORMAT(serviceProvider));
+      throw new Error("Invalid API key format");
     }
     const arrayBuffer = await audioBlob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const boundary = "----ObsidianVoiceWritingBoundary" + Date.now();
     const body = await this.createFormData(buffer, "recording.webm", boundary, language, serviceProvider);
-    const url = serviceProvider === "openai" ? "https://api.openai.com/v1/audio/transcriptions" : "https://api.groq.com/openai/v1/audio/transcriptions";
-    const model = serviceProvider === "openai" ? "whisper-1" : "whisper-large-v3";
+    const url = API_ENDPOINTS[serviceProvider];
     const params = {
       url,
       method: "POST",
@@ -93,29 +172,79 @@ var TranscriptionService = class {
         "Content-Type": `multipart/form-data; boundary=${boundary}`,
         "Authorization": `Bearer ${apiKey}`
       },
-      body
+      body,
+      throw: false
+      // Don't throw on non-2xx responses
     };
     try {
-      const response = await (0, import_obsidian.requestUrl)(params);
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("TIMEOUT"));
+        }, API_CONFIG.TIMEOUT_MS);
+      });
+      const response = await Promise.race([
+        (0, import_obsidian.requestUrl)(params),
+        timeoutPromise
+      ]);
       if (response.status !== 200) {
-        console.error("Transcription failed:", response.json);
-        throw new Error(`Transcription failed: ${response.status}`);
+        const errorDetails = this.parseErrorResponse(response);
+        console.error("Transcription failed:", errorDetails);
+        new import_obsidian.Notice(`\u274C Transcription failed: ${errorDetails.message}`);
+        throw new Error(`Transcription failed: ${response.status} - ${errorDetails.message}`);
       }
       return { text: response.json.text };
     } catch (error) {
+      if (error instanceof Error && error.message === "TIMEOUT") {
+        console.error("Transcription timeout after", API_CONFIG.TIMEOUT_MS, "ms");
+        new import_obsidian.Notice(ERROR_MESSAGES.TRANSCRIPTION_TIMEOUT);
+        throw new Error("Transcription timeout");
+      }
       console.error("Transcription error:", error);
-      new import_obsidian.Notice("Transcription failed. Check console for details.");
+      new import_obsidian.Notice(ERROR_MESSAGES.TRANSCRIPTION_FAILED);
       throw error;
+    }
+  }
+  isValidApiKeyFormat(apiKey, provider) {
+    const trimmedKey = apiKey.trim();
+    if (provider === "openai") {
+      return trimmedKey.startsWith("sk-") && trimmedKey.length > 20;
+    } else if (provider === "groq") {
+      return trimmedKey.length > 20 && !/\s/.test(trimmedKey);
+    }
+    return trimmedKey.length > 10;
+  }
+  parseErrorResponse(response) {
+    var _a;
+    try {
+      const json = response.json;
+      if ((_a = json == null ? void 0 : json.error) == null ? void 0 : _a.message) {
+        return {
+          status: response.status,
+          message: json.error.message,
+          details: json.error.type || json.error.code
+        };
+      }
+      return {
+        status: response.status,
+        message: `HTTP ${response.status} Error`,
+        details: JSON.stringify(json)
+      };
+    } catch (e) {
+      return {
+        status: response.status,
+        message: `HTTP ${response.status} Error`,
+        details: "Could not parse error response"
+      };
     }
   }
   async createFormData(fileBuffer, fileName, boundary, language, provider) {
     const parts = [];
-    const model = provider === "openai" ? "whisper-1" : "whisper-large-v3";
+    const model = MODELS[provider];
     parts.push(Buffer.from(`--${boundary}\r
 `));
     parts.push(Buffer.from(`Content-Disposition: form-data; name="file"; filename="${fileName}"\r
 `));
-    parts.push(Buffer.from(`Content-Type: audio/webm\r
+    parts.push(Buffer.from(`Content-Type: ${API_CONFIG.AUDIO_MIME_TYPE}\r
 \r
 `));
     parts.push(fileBuffer);
@@ -177,9 +306,12 @@ var QuickOptionModal = class extends import_obsidian2.Modal {
     contentEl.createEl("h2", { text: "Voice Writing Options" });
     let tempLanguage = this.currentLanguage;
     let tempService = this.currentService;
-    new import_obsidian2.Setting(contentEl).setName("Language").setDesc("Select audio language").addDropdown(
-      (drop) => drop.addOption("auto", "Auto Detect").addOption("en", "English").addOption("ko", "Korean").addOption("ja", "Japanese").setValue(tempLanguage).onChange((value) => tempLanguage = value)
-    );
+    new import_obsidian2.Setting(contentEl).setName("Language").setDesc("Select audio language").addDropdown((drop) => {
+      SUPPORTED_LANGUAGES.forEach((lang) => {
+        drop.addOption(lang.code, lang.name);
+      });
+      drop.setValue(tempLanguage).onChange((value) => tempLanguage = value);
+    });
     new import_obsidian2.Setting(contentEl).setName("Service").setDesc("Transcription provider").addDropdown(
       (drop) => drop.addOption("openai", "OpenAI Whisper").addOption("groq", "Groq (Fast)").setValue(tempService).onChange((value) => tempService = value)
     );
@@ -233,7 +365,7 @@ var VoiceWritingPlugin = class extends import_obsidian3.Plugin {
           this.settings.language = lang;
           this.settings.serviceProvider = service;
           await this.saveSettings();
-          new import_obsidian3.Notice(`Settings saved: ${service} / ${lang}`);
+          new import_obsidian3.Notice(SUCCESS_MESSAGES.SETTINGS_SAVED(service, lang));
         }).open();
       }
     });
@@ -249,11 +381,17 @@ var VoiceWritingPlugin = class extends import_obsidian3.Plugin {
   async startRecording() {
     try {
       await this.recorder.startRecording();
-      new import_obsidian3.Notice("\u{1F399}\uFE0F Recording started...");
+      new import_obsidian3.Notice(SUCCESS_MESSAGES.RECORDING_STARTED);
       this.ribbonIconEl.addClass("voice-writing-recording");
       this.updateStatusBar("Recording...");
     } catch (error) {
-      new import_obsidian3.Notice("Failed to start recording: " + error);
+      const recordingError = error;
+      if (recordingError.type) {
+        new import_obsidian3.Notice(recordingError.message);
+      } else {
+        new import_obsidian3.Notice(ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR);
+      }
+      console.error("Recording error:", error);
     }
   }
   async stopRecording() {
@@ -274,7 +412,7 @@ var VoiceWritingPlugin = class extends import_obsidian3.Plugin {
           this.settings.serviceProvider
         );
         processingModal.close();
-        new import_obsidian3.Notice("\u2705 Transcription complete!");
+        new import_obsidian3.Notice(SUCCESS_MESSAGES.TRANSCRIPTION_COMPLETE);
         this.updateStatusBar("Idle");
         const activeView = this.app.workspace.getActiveViewOfType(import_obsidian3.MarkdownView);
         if (activeView) {
@@ -285,7 +423,7 @@ ${result.text}
 `;
           editor.replaceSelection(template);
         } else {
-          new import_obsidian3.Notice("Text copied to clipboard (No active editor)");
+          new import_obsidian3.Notice(SUCCESS_MESSAGES.COPIED_TO_CLIPBOARD);
           navigator.clipboard.writeText(result.text);
         }
       } catch (transcriptionError) {
