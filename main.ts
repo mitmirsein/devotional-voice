@@ -390,10 +390,23 @@ class VoiceWritingSettingTab extends PluginSettingTab {
 					this.display(); // Refresh to show correct key field
 				}));
 
+		// --- API Keys Section ---
+		containerEl.createEl('h3', {text: 'API Keys'});
+		
+		// OpenAI API Key Setup Guide
+		const openaiGuide = containerEl.createDiv({ cls: 'setting-item-description api-guide' });
+		openaiGuide.innerHTML = `
+			<strong>How to get OpenAI API Key:</strong><br>
+			1. Go to <a href="https://platform.openai.com/api-keys">platform.openai.com/api-keys</a><br>
+			2. Sign up or log in<br>
+			3. Click "Create new secret key"<br>
+			4. Copy the key (starts with <code>sk-</code>)
+		`;
+
 		// OpenAI API Key
 		new Setting(containerEl)
 			.setName('OpenAI API Key')
-			.setDesc('Enter your OpenAI API Key')
+			.setDesc('Whisper model - High quality transcription')
 			.addText(text => text
 				.setPlaceholder('sk-...')
 				.setValue(this.plugin.settings.openaiApiKey)
@@ -422,10 +435,21 @@ class VoiceWritingSettingTab extends PluginSettingTab {
 					button.setDisabled(false);
 				}));
 
+		// Groq API Key Setup Guide
+		const groqGuide = containerEl.createDiv({ cls: 'setting-item-description api-guide' });
+		groqGuide.innerHTML = `
+			<strong>How to get Groq API Key (Recommended - FREE!):</strong><br>
+			1. Go to <a href="https://console.groq.com/keys">console.groq.com/keys</a><br>
+			2. Sign up with Google/GitHub<br>
+			3. Click "Create API Key"<br>
+			4. Copy the key (starts with <code>gsk_</code>)<br>
+			<em>Groq is free and extremely fast!</em>
+		`;
+
 		// Groq API Key
 		new Setting(containerEl)
 			.setName('Groq API Key')
-			.setDesc('Enter your Groq API Key')
+			.setDesc('Whisper Large V3 - Extremely fast transcription (FREE)')
 			.addText(text => text
 				.setPlaceholder('gsk_...')
 				.setValue(this.plugin.settings.groqApiKey)
@@ -454,7 +478,8 @@ class VoiceWritingSettingTab extends PluginSettingTab {
 					button.setDisabled(false);
 				}));
 
-		// Speaker Diarization
+		// --- Other Settings Section ---
+		containerEl.createEl('h3', {text: 'Transcription Options'});
 		new Setting(containerEl)
 			.setName(DIARIZATION_NOTE.LABEL)
 			.setDesc(DIARIZATION_NOTE.INFO)

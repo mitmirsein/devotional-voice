@@ -1153,7 +1153,16 @@ var VoiceWritingSettingTab = class extends import_obsidian4.PluginSettingTab {
       await this.plugin.saveSettings();
       this.display();
     }));
-    new import_obsidian4.Setting(containerEl).setName("OpenAI API Key").setDesc("Enter your OpenAI API Key").addText((text) => text.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (value) => {
+    containerEl.createEl("h3", { text: "API Keys" });
+    const openaiGuide = containerEl.createDiv({ cls: "setting-item-description api-guide" });
+    openaiGuide.innerHTML = `
+			<strong>How to get OpenAI API Key:</strong><br>
+			1. Go to <a href="https://platform.openai.com/api-keys">platform.openai.com/api-keys</a><br>
+			2. Sign up or log in<br>
+			3. Click "Create new secret key"<br>
+			4. Copy the key (starts with <code>sk-</code>)
+		`;
+    new import_obsidian4.Setting(containerEl).setName("OpenAI API Key").setDesc("Whisper model - High quality transcription").addText((text) => text.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (value) => {
       this.plugin.settings.openaiApiKey = value;
       await this.plugin.saveSettings();
     })).addButton((button) => button.setButtonText("Test").setCta().onClick(async () => {
@@ -1170,7 +1179,16 @@ var VoiceWritingSettingTab = class extends import_obsidian4.PluginSettingTab {
       button.setButtonText("Test");
       button.setDisabled(false);
     }));
-    new import_obsidian4.Setting(containerEl).setName("Groq API Key").setDesc("Enter your Groq API Key").addText((text) => text.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (value) => {
+    const groqGuide = containerEl.createDiv({ cls: "setting-item-description api-guide" });
+    groqGuide.innerHTML = `
+			<strong>How to get Groq API Key (Recommended - FREE!):</strong><br>
+			1. Go to <a href="https://console.groq.com/keys">console.groq.com/keys</a><br>
+			2. Sign up with Google/GitHub<br>
+			3. Click "Create API Key"<br>
+			4. Copy the key (starts with <code>gsk_</code>)<br>
+			<em>Groq is free and extremely fast!</em>
+		`;
+    new import_obsidian4.Setting(containerEl).setName("Groq API Key").setDesc("Whisper Large V3 - Extremely fast transcription (FREE)").addText((text) => text.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (value) => {
       this.plugin.settings.groqApiKey = value;
       await this.plugin.saveSettings();
     })).addButton((button) => button.setButtonText("Test").setCta().onClick(async () => {
@@ -1187,6 +1205,7 @@ var VoiceWritingSettingTab = class extends import_obsidian4.PluginSettingTab {
       button.setButtonText("Test");
       button.setDisabled(false);
     }));
+    containerEl.createEl("h3", { text: "Transcription Options" });
     new import_obsidian4.Setting(containerEl).setName(DIARIZATION_NOTE.LABEL).setDesc(DIARIZATION_NOTE.INFO).addToggle((toggle) => toggle.setValue(this.plugin.settings.enableSpeakerDiarization).onChange(async (value) => {
       this.plugin.settings.enableSpeakerDiarization = value;
       await this.plugin.saveSettings();

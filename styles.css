@@ -304,3 +304,33 @@
     background: var(--background-modifier-error);
     border-radius: 5px;
 }
+
+/* --- Settings Page --- */
+
+.api-guide {
+    background: var(--background-secondary);
+    border-left: 3px solid var(--interactive-accent);
+    padding: 10px 15px;
+    margin: 10px 0;
+    border-radius: 0 5px 5px 0;
+    font-size: 0.9em;
+    line-height: 1.6;
+}
+
+.api-guide a {
+    color: var(--text-accent);
+    text-decoration: underline;
+}
+
+.api-guide code {
+    background: var(--background-modifier-border);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.85em;
+}
+
+.api-guide em {
+    color: var(--text-success);
+    font-style: normal;
+    font-weight: 500;
+}
