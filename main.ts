@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, TFile, requestUrl } from 'obsidian';
 import { MicrophoneRecorder, RecordingError } from './src/recorder';
 import { TranscriptionService } from './src/transcription';
-import { ProcessingModal, QuickOptionModal } from './src/modals';
+import { RecordingModal, ProcessingModal, QuickOptionModal } from './src/modals';
 import { ServiceProvider, SUCCESS_MESSAGES, ERROR_MESSAGES } from './src/constants';
 
 interface VoiceWritingSettings {
@@ -22,6 +22,7 @@ export default class VoiceWritingPlugin extends Plugin {
 	transcriptionService: TranscriptionService;
 	statusBarItem: HTMLElement;
 	ribbonIconEl: HTMLElement;
+	recordingModal: RecordingModal | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -85,9 +86,16 @@ export default class VoiceWritingPlugin extends Plugin {
 			new Notice(SUCCESS_MESSAGES.RECORDING_STARTED);
 			this.ribbonIconEl.addClass('voice-writing-recording');
 			this.updateStatusBar('Recording...');
+			
+			// Show Recording Modal
+			this.recordingModal = new RecordingModal(this.app, () => {
+				this.stopRecording();
+			});
+			this.recordingModal.open();
+
 		} catch (error) {
 			const recordingError = error as RecordingError;
-			if (recordingError.type) {
+			if (recordingError && recordingError.type) {
 				new Notice(recordingError.message);
 			} else {
 				new Notice(ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR);
@@ -97,6 +105,12 @@ export default class VoiceWritingPlugin extends Plugin {
 	}
 
 	async stopRecording() {
+		// Close recording modal if it exists (in case triggered by command/ribbon)
+		if (this.recordingModal) {
+			this.recordingModal.close();
+			this.recordingModal = null;
+		}
+
 		try {
 			const blob = await this.recorder.stopRecording();
 			this.ribbonIconEl.removeClass('voice-writing-recording');
@@ -136,12 +150,21 @@ export default class VoiceWritingPlugin extends Plugin {
 					navigator.clipboard.writeText(result.text);
 				}
 
-			} catch (transcriptionError) {
+			} catch (error) {
 				processingModal.close();
-				new Notice('❌ Transcription failed. Audio saved.');
-				console.error(transcriptionError);
+				console.error(error);
 				this.updateStatusBar('Error');
 				
+				// Handle specific API errors
+				const errMsg = (error as Error).message;
+				if (errMsg === 'API_UNAUTHORIZED') {
+					new Notice(ERROR_MESSAGES.API_UNAUTHORIZED, 5000); // Long duration
+				} else if (errMsg === 'API_QUOTA_EXCEEDED') {
+					new Notice(ERROR_MESSAGES.API_QUOTA_EXCEEDED, 5000);
+				} else {
+					new Notice('❌ Transcription failed. Audio saved locally.');
+				}
+
 				// Still insert the audio link
 				const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 				if (activeView) {
@@ -150,8 +173,9 @@ export default class VoiceWritingPlugin extends Plugin {
 			}
 
 		} catch (error) {
-			new Notice('Failed to stop recording: ' + error);
-			this.updateStatusBar('Error');
+			// This catches recorder stop errors (e.g. no recording active)
+			this.ribbonIconEl.removeClass('voice-writing-recording');
+			this.updateStatusBar('Idle');
 		}
 	}
 
@@ -218,12 +242,22 @@ class VoiceWritingSettingTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName('Default Language')
 			.setDesc('Language code for transcription (e.g., en, ko, ja). Use "auto" for auto-detection.')
-			.addText(text => text
-				.setPlaceholder('auto')
-				.setValue(this.plugin.settings.language)
-				.onChange(async (value) => {
-					this.plugin.settings.language = value;
-					await this.plugin.saveSettings();
-				}));
+			.addDropdown(drop => {
+                // We could use constant here, but for simplicity in main.ts logic:
+                const langs = [
+                    { code: 'auto', name: 'Auto Detect' },
+                    { code: 'en', name: 'English' },
+                    { code: 'ko', name: 'Korean' },
+                    { code: 'ja', name: 'Japanese' },
+                ];
+                langs.forEach(lang => {
+                    drop.addOption(lang.code, lang.name);
+                });
+                drop.setValue(this.plugin.settings.language)
+                    .onChange(async (value) => {
+                        this.plugin.settings.language = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
 	}
 }

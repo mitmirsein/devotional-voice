@@ -47,7 +47,9 @@ export const ERROR_MESSAGES = {
     MICROPHONE_PERMISSION_DENIED: 'Microphone access denied. Please allow microphone access in your browser/system settings.',
     MICROPHONE_NOT_FOUND: 'No microphone found. Please connect a microphone and try again.',
     MICROPHONE_GENERAL_ERROR: 'Failed to access microphone. Please check your audio settings.',
-    NO_ACTIVE_RECORDING: 'No active recording to stop.'
+    NO_ACTIVE_RECORDING: 'No active recording to stop.',
+    API_UNAUTHORIZED: 'Incorrect API Key (401). Please check your settings.',
+    API_QUOTA_EXCEEDED: 'API Quota Exceeded (429). Please check your plan.'
 } as const;
 
 // Success Messages

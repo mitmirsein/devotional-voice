@@ -1,6 +1,67 @@
 import { App, Modal, Setting } from 'obsidian';
 import { ServiceProvider, SUPPORTED_LANGUAGES } from './constants';
 
+export class RecordingModal extends Modal {
+    private timerEl: HTMLElement;
+    private startTime: number;
+    private timerInterval: number;
+    private onStop: () => void;
+
+    constructor(app: App, onStop: () => void) {
+        super(app);
+        this.onStop = onStop;
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.addClass('voice-writing-recording-modal');
+
+        // Main Container clearly indicating recording state
+        const container = contentEl.createDiv({ cls: 'recording-container' });
+        
+        // Icon with pulse animation
+        const iconWrapper = container.createDiv({ cls: 'recording-icon-wrapper' });
+        iconWrapper.createDiv({ cls: 'recording-pulse-ring' });
+        iconWrapper.createEl('span', { text: '🎙️', cls: 'recording-icon' });
+
+        // Text
+        container.createEl('h2', { text: 'Recording in Progress...' });
+        
+        // Timer
+        this.timerEl = container.createDiv({ cls: 'recording-timer', text: '00:00' });
+        this.startTime = Date.now();
+        this.timerInterval = window.setInterval(() => this.updateTimer(), 1000);
+
+        // Stop Button
+        const btnContainer = container.createDiv({ cls: 'recording-controls' });
+        const stopBtn = btnContainer.createEl('button', { 
+            text: 'Stop Recording', 
+            cls: 'mod-cta stop-recording-btn' 
+        });
+        stopBtn.onclick = () => {
+            this.onStop();
+            this.close();
+        };
+
+        // Click outside to close (optional, but better to keep it focused)
+        // this.modalEl.addClass('modal-persistent'); // If we want to prevent closing by clicking background
+    }
+
+    updateTimer() {
+        if (!this.timerEl) return;
+        const diff = Math.floor((Date.now() - this.startTime) / 1000);
+        const mins = Math.floor(diff / 60).toString().padStart(2, '0');
+        const secs = (diff % 60).toString().padStart(2, '0');
+        this.timerEl.setText(`${mins}:${secs}`);
+    }
+
+    onClose() {
+        if (this.timerInterval) clearInterval(this.timerInterval);
+        this.contentEl.empty();
+    }
+}
+
 export class ProcessingModal extends Modal {
     constructor(app: App) {
         super(app);
@@ -11,13 +72,16 @@ export class ProcessingModal extends Modal {
         contentEl.empty();
         contentEl.addClass('voice-writing-processing-modal');
 
-        contentEl.createEl('h2', { text: '✨ Processing Audio...' });
-        
-        const spinner = contentEl.createDiv({ cls: 'voice-writing-spinner' });
+        const container = contentEl.createDiv({ cls: 'processing-container' });
+
+        // Improved Spinner
+        const spinner = container.createDiv({ cls: 'voice-writing-spinner' });
         spinner.createDiv({ cls: 'double-bounce1' });
         spinner.createDiv({ cls: 'double-bounce2' });
 
-        contentEl.createEl('p', { text: 'Transcribing your voice...' });
+        container.createEl('h2', { text: '✨ Transcribing...' });
+        container.createEl('p', { text: 'Sending audio to AI for text conversion.' });
+        container.createEl('small', { text: 'This usually takes a few seconds.', cls: 'processing-hint' });
     }
 
     onClose() {

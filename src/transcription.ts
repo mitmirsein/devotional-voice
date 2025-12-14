@@ -71,10 +71,14 @@ export class TranscriptionService {
             ]);
 
             if (response.status !== 200) {
-                const errorDetails = this.parseErrorResponse(response);
-                console.error('Transcription failed:', errorDetails);
-                new Notice(`❌ Transcription failed: ${errorDetails.message}`);
-                throw new Error(`Transcription failed: ${response.status} - ${errorDetails.message}`);
+                console.error('Transcription failed:', response.json);
+                if (response.status === 401) {
+                    throw new Error('API_UNAUTHORIZED'); // Will be caught and mapped
+                }
+                if (response.status === 429) {
+                    throw new Error('API_QUOTA_EXCEEDED');
+                }
+                throw new Error(`Transcription failed: ${response.status}`);
             }
 
             return { text: response.json.text };

@@ -32,23 +32,105 @@
 	}
 }
 
-/* Spinner CSS */
-.voice-writing-processing-modal {
+
+/* --- Modals --- */
+
+/* Recording Modal */
+.voice-writing-recording-modal .modal-content {
     text-align: center;
+    padding: 30px;
 }
 
-.voice-writing-spinner {
-    width: 40px;
-    height: 40px;
+.recording-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+}
+
+.recording-icon-wrapper {
     position: relative;
-    margin: 20px auto;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.recording-icon {
+    font-size: 30px;
+    z-index: 2;
+}
+
+.recording-pulse-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: rgba(255, 82, 82, 0.2);
+    animation: ripple 1.5s infinite;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+.recording-timer {
+    font-size: 2em;
+    font-weight: bold;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-normal);
+}
+
+.stop-recording-btn {
+    background-color: var(--text-error) !important;
+    color: white !important;
+    padding: 8px 20px;
+    font-size: 1.1em;
+}
+
+.stop-recording-btn:hover {
+    opacity: 0.9;
+}
+
+/* Processing Modal */
+.voice-writing-processing-modal .modal-content {
+    text-align: center;
+    padding: 40px;
+}
+
+.processing-container h2 {
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.processing-hint {
+    color: var(--text-muted);
+    display: block;
+    margin-top: 10px;
+}
+
+/* Spinner CSS */
+.voice-writing-spinner {
+    width: 50px;
+    height: 50px;
+    position: relative;
+    margin: 0 auto;
 }
 
 .double-bounce1, .double-bounce2 {
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-color: var(--text-accent);
+    background-color: var(--interactive-accent);
     opacity: 0.6;
     position: absolute;
     top: 0;
