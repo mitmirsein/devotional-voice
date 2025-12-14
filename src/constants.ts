@@ -70,10 +70,10 @@ export const SUCCESS_MESSAGES = {
     API_KEY_TEST_START: 'Testing API key...'
 } as const;
 
-// Speaker Diarization Note
+// Speaker Diarization Note (English only, no emoji)
 export const DIARIZATION_NOTE = {
-    INFO: '⚠️ 화자 구분은 현재 OpenAI/Groq Whisper API에서 기본 지원되지 않습니다. 향후 업데이트 예정.',
-    LABEL: '화자 구분 (Speaker Diarization)'
+    INFO: 'Speaker diarization is not natively supported by OpenAI/Groq Whisper API. Coming in future updates.',
+    LABEL: 'Speaker Diarization (Experimental)'
 } as const;
 
 // API Test Error Messages (Emoji-free for Obsidian Community Plugin compatibility)

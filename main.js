@@ -80,8 +80,8 @@ var SUCCESS_MESSAGES = {
   API_KEY_TEST_START: "Testing API key..."
 };
 var DIARIZATION_NOTE = {
-  INFO: "\u26A0\uFE0F \uD654\uC790 \uAD6C\uBD84\uC740 \uD604\uC7AC OpenAI/Groq Whisper API\uC5D0\uC11C \uAE30\uBCF8 \uC9C0\uC6D0\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uD5A5\uD6C4 \uC5C5\uB370\uC774\uD2B8 \uC608\uC815.",
-  LABEL: "\uD654\uC790 \uAD6C\uBD84 (Speaker Diarization)"
+  INFO: "Speaker diarization is not natively supported by OpenAI/Groq Whisper API. Coming in future updates.",
+  LABEL: "Speaker Diarization (Experimental)"
 };
 var API_TEST_ERRORS = {
   INVALID_KEY: "Invalid API Key. Please check and try again.",
