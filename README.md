@@ -129,7 +129,9 @@ npm run build
 
 ## 📄 라이선스
 
-MIT License
+AGPL-3.0 License
+
+이 프로젝트는 [voice-writing](https://github.com/reallygood83/voice-writing)의 코드를 기반으로 하며, 동일한 AGPL-3.0 라이선스를 따릅니다.
 
 ---
 
