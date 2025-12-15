@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-voice-writing",
-  "version": "1.2.3",
-  "description": "Voice Writing plugin for Obsidian",
+  "name": "obsidian-devotional-voice",
+  "version": "0.1.0",
+  "description": "Devotional Voice Plugin for Obsidian - AI-powered Bible meditation with voice input and TTS output",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -12,9 +12,13 @@
     "obsidian",
     "plugin",
     "voice",
-    "recording"
+    "devotional",
+    "bible",
+    "meditation",
+    "rag",
+    "tts"
   ],
-  "author": "Obsidian Voice Writing",
+  "author": "Kerygma Press",
   "license": "AGPL-3.0",
   "devDependencies": {
     "@types/node": "^16.11.6",

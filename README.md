@@ -1,78 +1,133 @@
-# Voice Writing for Obsidian 🎙️
+# 📖 Devotional Voice Plugin for Obsidian
 
-A local-first, AI-powered voice writing plugin for Obsidian. Seamlessly record, transcribe, and write with your voice using OpenAI or Groq.
+음성, 텍스트, 또는 노트 전체를 입력으로 받아 **AI 기반 묵상글**을 생성하고, **TTS(Text-to-Speech)**로 낭독해주는 Obsidian 플러그인입니다.
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/reallygood83/voice-writing?style=flat-square)
+## ✨ 주요 기능
 
-## ✨ Features
+- **🎤 음성 입력**: 마이크로 묵상 주제를 녹음하면 자동으로 텍스트 변환
+- **📝 텍스트 선택**: 노트에서 텍스트를 선택하여 묵상 생성
+- **📂 현재 노트**: 열려있는 노트 전체를 기반으로 묵상 생성
+- **🔍 RAG 검색**: 볼트 내 관련 노트를 자동 검색하여 맥락 강화
+- **✨ AI 묵상글 생성**: Gemini AI를 활용한 신학적 깊이의 묵상글
+- **🔊 TTS 낭독**: Gemini TTS로 자연스러운 음성 낭독
+- **💾 오디오 저장**: 생성된 TTS를 WAV 파일로 저장
 
-- **One-Click Recording**: Instantly start recording via the ribbon icon or status bar.
-- **Magic Paste**: Automatically transcribes audio and inserts text + audio attachment into your note.
-- **AI-Powered**: Supports **OpenAI Whisper** (High Quality) and **Groq** (Real-time speed).
-- **Quick Options**: Easily switch languages (e.g., English, Korean) and models without digging into settings.
-- **Privacy First**: Audio is processed via your own API keys. Files are stored locally in your vault.
+---
 
-## 🏁 Before You Begin
+## 🚀 설치 방법
 
-To use this plugin, you need an API Key from **OpenAI** or **Groq**. Don't worry, it's easy to get one!
+### BRAT을 통한 설치 (권장)
 
-### 1. Get an API Key
-- **Recommend**: [**Groq**](https://console.groq.com/keys) (It's currently **Free** and **Extremely Fast**! ⚡️)
-- **Alternative**: [OpenAI](https://platform.openai.com/api-keys) (High accuracy, standard pricing)
+1. **BRAT 플러그인 설치**
+   - Obsidian 설정 → Community Plugins → Browse
+   - "BRAT" 검색 후 설치 및 활성화
 
-### 2. Set it up in Obsidian
-1. Install and enable the plugin.
-2. Go to **Settings** > **Voice Writing**.
-3. Paste your key into the **API Key** field.
-4. Select your provider (`Groq` or `OpenAI`) in the dropdown.
-5. That's it! You're ready to record. 🎙️
+2. **Devotional Voice 플러그인 추가**
+   - `Cmd/Ctrl + P` → `BRAT: Add a beta plugin for testing`
+   - 레포지토리 입력: `mitmirsein/devotional-voice`
+   - 설치 완료 후 플러그인 활성화
 
-## 🚀 Installation
+### 수동 설치
 
-### Via BRAT (Recommended for Beta)
-1. Install the **[BRAT](https://github.com/TfTHacker/obsidian42-brat)** plugin from Community Plugins.
-2. Open BRAT settings > **Add Neter plugin**.
-3. Enter repository: `reallygood83/voice-writing`.
-4. Enable "Voice Writing" in your Community Plugins list.
+1. [Releases](https://github.com/mitmirsein/devotional-voice/releases)에서 최신 버전 다운로드
+2. `main.js`, `manifest.json`, `styles.css`를 볼트의 `.obsidian/plugins/devotional-voice/` 폴더에 복사
+3. Obsidian 재시작 후 플러그인 활성화
 
-### Manual Installation
-1. Download the latest release from the [Releases](https://github.com/reallygood83/voice-writing/releases) page.
-2. Extract the files into `.obsidian/plugins/voice-writing`.
-3. Reload Obsidian.
+---
 
-## ⚙️ Configuration
+## ⚙️ 설정
 
-1. Go to **Settings > Voice Writing**.
-2. **Service Provider**: Choose `OpenAI` or `Groq`.
-3. **API Key**: Enter your API key.
-    - [Get OpenAI Key](https://platform.openai.com/api-keys)
-    - [Get Groq Key](https://console.groq.com/keys)
-4. **Default Language**: Set your primary language (e.g., `en`, `ko`, or `auto`).
+설정 → Devotional Voice 탭에서 구성합니다.
 
-## 🎮 Usage
+### 🎤 음성 인식 (STT)
+| 설정 | 설명 |
+|---|---|
+| Service Provider | `Groq` (무료/빠름) 또는 `OpenAI` 선택 |
+| OpenAI API Key | OpenAI STT 사용 시 필요 |
+| Groq API Key | [console.groq.com/keys](https://console.groq.com/keys)에서 무료 발급 |
 
-### Basic Workflow
-1. Click the **Microphone Icon** in the left ribbon (or click "Idle" in the status bar).
-2. Speak your thoughts. The status bar will show "Recording...".
-3. Click the icon again to stop.
-4. Wait for the "Processing..." modal to finish.
-5. Your text and audio file will appear in the current note!
+### 🔍 RAG 검색
+| 설정 | 설명 |
+|---|---|
+| 화이트리스트 폴더 | 검색 대상 폴더 (콤마 구분). 예: `묵상일지/, 성경연구/` |
+| 최대 검색 결과 | 참조할 노트 개수 (1~10) |
 
-### Quick Options
-- Run the command `Voice Writing: Quick Options` (Cmd/Ctrl + P).
-- Switch Language or Model on the fly.
+### ✨ 묵상글 생성
+| 설정 | 설명 |
+|---|---|
+| Gemini API Key | [aistudio.google.com](https://aistudio.google.com)에서 발급 **(필수)** |
+| Gemini Model | 기본: `gemini-2.0-flash` |
+| Prompt Template | 묵상글 생성 프롬프트 커스터마이징 (빈칸 시 기본 템플릿) |
 
-## 🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+### 🔊 TTS 설정
+| 설정 | 설명 |
+|---|---|
+| TTS 활성화 | TTS 기능 ON/OFF |
+| TTS 제공자 | `Gemini TTS`, `OpenAI TTS`, `Web Speech (무료)` |
+| Gemini TTS Model | 기본: `gemini-2.5-flash-preview-tts` |
+| Gemini Voice | 15가지 음성 선택 (Kore, Fenrir, Aoede 등) |
 
-## 📄 License
-AGPL-3.0
+---
 
-## 👨‍💻 About the Author
+## 📚 사용법
 
-Hi! I'm **Moon**, passionate about productivity and learning.
+### 1. 묵상글 생성
 
-- 📺 **YouTube**: [Master of Learning (배움의달인)](https://youtube.com/@배움의달인-p5v)
-- 🐦 **X (Twitter)**: [@reallygood83](https://x.com/reallygood83)
+**방법 A: 리본 아이콘**
+- 좌측 리본의 📖 아이콘 클릭
+- 입력 방식 선택 (음성/텍스트 선택/현재 노트)
 
-If you find this plugin helpful, please subscribe and follow!
+**방법 B: 명령어 팔레트**
+- `Cmd/Ctrl + P` 후 아래 명령어 실행:
+  - `From Voice`: 음성 녹음으로 묵상
+  - `From Selection`: 선택한 텍스트로 묵상
+  - `From Current Note`: 현재 노트 전체로 묵상
+
+### 2. TTS 재생
+- `Cmd/Ctrl + P` → `Read Aloud: TTS 재생`
+- 노트에 생성된 `%%TTS-SCRIPT:...%%` 대본을 자동으로 읽습니다
+- 텍스트를 선택한 상태라면 선택된 부분만 읽습니다
+
+### 3. 오디오 파일 저장
+- `Cmd/Ctrl + P` → `Save Audio: TTS 대본 오디오 저장`
+- 현재 노트와 같은 폴더에 `.wav` 파일로 저장
+- 저장 후 노트에 `![[파일명.wav]]`가 자동 삽입됩니다
+
+---
+
+## 💰 비용 안내
+
+| 항목 | 비용 |
+|---|---|
+| 묵상글 1회 생성 (gemini-2.0-flash) | ~$0.001 (약 1~2원) |
+| TTS 오디오 생성 (gemini-2.5-flash-preview-tts) | **무료** (Preview 기간) |
+| Groq STT | **무료** |
+
+---
+
+## 🛠️ 개발
+
+```bash
+# 의존성 설치
+npm install
+
+# 개발 빌드
+npm run dev
+
+# 프로덕션 빌드
+npm run build
+```
+
+---
+
+## 📄 라이선스
+
+MIT License
+
+## 🙏 기여
+
+이슈 및 PR 환영합니다!
+
+---
+
+Made with ❤️ for the glory of God.

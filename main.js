@@ -24,10 +24,10 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // main.ts
 var main_exports = {};
 __export(main_exports, {
-  default: () => VoiceWritingPlugin
+  default: () => DevotionalVoicePlugin
 });
 module.exports = __toCommonJS(main_exports);
-var import_obsidian4 = require("obsidian");
+var import_obsidian5 = require("obsidian");
 
 // src/constants.ts
 var MODELS = {
@@ -48,16 +48,6 @@ var API_CONFIG = {
   MAX_FILE_SIZE_MB: 25,
   AUDIO_MIME_TYPE: "audio/webm"
 };
-var SUPPORTED_LANGUAGES = [
-  { code: "auto", name: "Auto Detect" },
-  { code: "en", name: "English" },
-  { code: "ko", name: "Korean (\uD55C\uAD6D\uC5B4)" },
-  { code: "ja", name: "Japanese (\u65E5\u672C\u8A9E)" },
-  { code: "zh", name: "Chinese (\u4E2D\u6587)" },
-  { code: "es", name: "Spanish (Espa\xF1ol)" },
-  { code: "fr", name: "French (Fran\xE7ais)" },
-  { code: "de", name: "German (Deutsch)" }
-];
 var ERROR_MESSAGES = {
   API_KEY_MISSING: "API Key is missing. Please set it in settings.",
   API_KEY_INVALID_FORMAT: (provider) => `Invalid API key format for ${provider}. Please check your API key.`,
@@ -79,216 +69,11 @@ var SUCCESS_MESSAGES = {
   API_KEY_VALID: "API key is valid!",
   API_KEY_TEST_START: "Testing API key..."
 };
-var DIARIZATION_NOTE = {
-  INFO: "Speaker diarization is not natively supported by OpenAI/Groq Whisper API. Coming in future updates.",
-  LABEL: "Speaker Diarization (Experimental)"
-};
 var API_TEST_ERRORS = {
   INVALID_KEY: "Invalid API Key. Please check and try again.",
   QUOTA_EXCEEDED: "API Quota exceeded. Check your billing.",
   NETWORK_ERROR: "Network error. Check your internet connection.",
   UNKNOWN_ERROR: "Test failed. Check console for details."
-};
-var SUPPORTED_AUDIO_FORMATS = [
-  "mp3",
-  "wav",
-  "webm",
-  "m4a",
-  "ogg",
-  "flac",
-  "mp4",
-  "mpeg",
-  "mpga"
-];
-var AUDIO_MIME_TYPES = {
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  webm: "audio/webm",
-  m4a: "audio/m4a",
-  ogg: "audio/ogg",
-  flac: "audio/flac",
-  mp4: "audio/mp4",
-  mpeg: "audio/mpeg",
-  mpga: "audio/mpeg"
-};
-var BUILT_IN_TEMPLATES = [
-  {
-    id: "none",
-    name: "None (Raw Transcript)",
-    nameKo: "\uC5C6\uC74C (\uC6D0\uBCF8 \uD14D\uC2A4\uD2B8)",
-    description: "Keep the original transcription without formatting",
-    prompt: "",
-    isBuiltIn: true
-  },
-  {
-    id: "meeting",
-    name: "Meeting Notes",
-    nameKo: "\uD68C\uC758\uB85D",
-    description: "Format as structured meeting notes with participants, agenda, decisions, and action items",
-    prompt: `\uB2E4\uC74C \uC804\uC0AC \uB0B4\uC6A9\uC744 \uD68C\uC758\uB85D \uD615\uC2DD\uC73C\uB85C \uC815\uB9AC\uD574\uC8FC\uC138\uC694:
-
-## \u{1F4CB} \uD68C\uC758\uB85D
-
-### \u{1F4C5} \uC77C\uC2DC
-- \uB0A0\uC9DC/\uC2DC\uAC04: [\uCD94\uC815]
-
-### \u{1F465} \uCC38\uC11D\uC790
-- [\uC5B8\uAE09\uB41C \uCC38\uC11D\uC790\uB4E4]
-
-### \u{1F4CC} \uC8FC\uC694 \uC548\uAC74
-1. [\uC548\uAC741]
-2. [\uC548\uAC742]
-
-### \u{1F4AC} \uB17C\uC758 \uB0B4\uC6A9
-[\uC8FC\uC694 \uB17C\uC758 \uB0B4\uC6A9 \uC694\uC57D]
-
-### \u2705 \uACB0\uC815 \uC0AC\uD56D
-- [\uACB0\uC8151]
-- [\uACB0\uC8152]
-
-### \u{1F4DD} Action Items
-- [ ] [\uC561\uC1581] - \uB2F4\uB2F9\uC790
-- [ ] [\uC561\uC1582] - \uB2F4\uB2F9\uC790
-
-### \u{1F51C} \uB2E4\uC74C \uB2E8\uACC4
-[\uD6C4\uC18D \uC870\uCE58 \uBC0F \uB2E4\uC74C \uD68C\uC758 \uC77C\uC815]
-
----
-\uC6D0\uBCF8 \uC804\uC0AC:
-`,
-    isBuiltIn: true
-  },
-  {
-    id: "lecture",
-    name: "Lecture Notes",
-    nameKo: "\uAC15\uC758 \uB178\uD2B8",
-    description: "Format as organized lecture notes with key concepts and summary",
-    prompt: `\uB2E4\uC74C \uC804\uC0AC \uB0B4\uC6A9\uC744 \uAC15\uC758 \uB178\uD2B8 \uD615\uC2DD\uC73C\uB85C \uC815\uB9AC\uD574\uC8FC\uC138\uC694:
-
-## \u{1F4DA} \uAC15\uC758 \uB178\uD2B8
-
-### \u{1F3AF} \uAC15\uC758 \uC8FC\uC81C
-[\uC8FC\uC81C]
-
-### \u{1F4DD} \uD575\uC2EC \uAC1C\uB150
-1. **[\uAC1C\uB1501]**: \uC124\uBA85
-2. **[\uAC1C\uB1502]**: \uC124\uBA85
-3. **[\uAC1C\uB1503]**: \uC124\uBA85
-
-### \u{1F4D6} \uC0C1\uC138 \uB0B4\uC6A9
-[\uAC15\uC758 \uB0B4\uC6A9\uC744 \uCCB4\uACC4\uC801\uC73C\uB85C \uC815\uB9AC]
-
-### \u{1F4A1} \uC911\uC694 \uD3EC\uC778\uD2B8
-> [\uAC15\uC870\uB41C \uB0B4\uC6A9\uC774\uB098 \uC911\uC694\uD55C \uC778\uC0AC\uC774\uD2B8]
-
-### \u2753 \uC9C8\uBB38/\uD1A0\uB860 \uC0AC\uD56D
-- [\uC9C8\uBB381]
-- [\uC9C8\uBB382]
-
-### \u{1F4CB} \uC694\uC57D
-[\uC804\uCCB4 \uB0B4\uC6A9 3-5\uBB38\uC7A5 \uC694\uC57D]
-
-### \u{1F517} \uAD00\uB828 \uC790\uB8CC/\uCC38\uACE0
-- [\uAD00\uB828 \uC790\uB8CC]
-
----
-\uC6D0\uBCF8 \uC804\uC0AC:
-`,
-    isBuiltIn: true
-  },
-  {
-    id: "idea",
-    name: "Brainstorming / Ideas",
-    nameKo: "\uC544\uC774\uB514\uC5B4 \uBE0C\uB808\uC778\uC2A4\uD1A0\uBC0D",
-    description: "Organize ideas and brainstorming sessions",
-    prompt: `\uB2E4\uC74C \uC804\uC0AC \uB0B4\uC6A9\uC744 \uC544\uC774\uB514\uC5B4 \uBE0C\uB808\uC778\uC2A4\uD1A0\uBC0D \uD615\uC2DD\uC73C\uB85C \uC815\uB9AC\uD574\uC8FC\uC138\uC694:
-
-## \u{1F4A1} \uC544\uC774\uB514\uC5B4 \uBE0C\uB808\uC778\uC2A4\uD1A0\uBC0D
-
-### \u{1F3AF} \uC8FC\uC81C/\uBAA9\uD45C
-[\uBE0C\uB808\uC778\uC2A4\uD1A0\uBC0D \uC8FC\uC81C]
-
-### \u{1F4AD} \uC544\uC774\uB514\uC5B4 \uBAA9\uB85D
-1. **[\uC544\uC774\uB514\uC5B41]**
-   - \uC124\uBA85:
-   - \uC7A5\uC810:
-   - \uB2E8\uC810:
-
-2. **[\uC544\uC774\uB514\uC5B42]**
-   - \uC124\uBA85:
-   - \uC7A5\uC810:
-   - \uB2E8\uC810:
-
-### \u2B50 Top 3 \uC720\uB9DD \uC544\uC774\uB514\uC5B4
-1. [\uAC00\uC7A5 \uC720\uB9DD\uD55C \uC544\uC774\uB514\uC5B4]
-2. [\uB450 \uBC88\uC9F8]
-3. [\uC138 \uBC88\uC9F8]
-
-### \u{1F504} \uB2E4\uC74C \uB2E8\uACC4
-- [ ] [\uC561\uC1581]
-- [ ] [\uC561\uC1582]
-
-### \u{1F4DD} \uCD94\uAC00 \uBA54\uBAA8
-[\uAE30\uD0C0 \uB17C\uC758 \uC0AC\uD56D]
-
----
-\uC6D0\uBCF8 \uC804\uC0AC:
-`,
-    isBuiltIn: true
-  },
-  {
-    id: "interview",
-    name: "Interview Notes",
-    nameKo: "\uC778\uD130\uBDF0 \uC815\uB9AC",
-    description: "Format interview conversations with Q&A structure",
-    prompt: `\uB2E4\uC74C \uC804\uC0AC \uB0B4\uC6A9\uC744 \uC778\uD130\uBDF0 \uC815\uB9AC \uD615\uC2DD\uC73C\uB85C \uC815\uB9AC\uD574\uC8FC\uC138\uC694:
-
-## \u{1F3A4} \uC778\uD130\uBDF0 \uC815\uB9AC
-
-### \u{1F4C5} \uC778\uD130\uBDF0 \uC815\uBCF4
-- \uC77C\uC2DC: [\uCD94\uC815]
-- \uC778\uD130\uBDF0\uC774: [\uC774\uB984/\uC5ED\uD560]
-- \uC778\uD130\uBDF0\uC5B4: [\uC774\uB984/\uC5ED\uD560]
-
-### \u{1F3AF} \uC778\uD130\uBDF0 \uBAA9\uC801
-[\uC778\uD130\uBDF0 \uBAA9\uC801]
-
-### \u{1F4AC} \uC8FC\uC694 Q&A
-
-**Q1: [\uC9C8\uBB38]**
-> A: [\uB2F5\uBCC0 \uC694\uC57D]
-
-**Q2: [\uC9C8\uBB38]**
-> A: [\uB2F5\uBCC0 \uC694\uC57D]
-
-### \u{1F4CC} \uD575\uC2EC \uC778\uC0AC\uC774\uD2B8
-1. [\uC778\uC0AC\uC774\uD2B81]
-2. [\uC778\uC0AC\uC774\uD2B82]
-3. [\uC778\uC0AC\uC774\uD2B83]
-
-### \u{1F4A1} \uC8FC\uC694 \uC778\uC6A9\uAD6C
-> "[\uAE30\uC5B5\uC5D0 \uB0A8\uB294 \uC778\uC6A9]"
-
-### \u{1F4DD} \uD6C4\uC18D \uC870\uCE58
-- [ ] [\uC561\uC1581]
-- [ ] [\uC561\uC1582]
-
----
-\uC6D0\uBCF8 \uC804\uC0AC:
-`,
-    isBuiltIn: true
-  }
-];
-var TEMPLATE_MESSAGES = {
-  SELECT_TEMPLATE: "Select a template to format the transcription",
-  FORMATTING: "Formatting with template...",
-  FORMAT_COMPLETE: "Formatting complete!",
-  FORMAT_FAILED: "Formatting failed. Original text preserved.",
-  CUSTOM_TEMPLATE_SAVED: "Custom template saved!",
-  CUSTOM_TEMPLATE_DELETED: "Template deleted.",
-  FILE_UPLOAD_SUCCESS: "File uploaded and transcribed!",
-  FILE_TOO_LARGE: "File too large. Maximum size is 25MB.",
-  INVALID_FILE_TYPE: "Invalid file type. Supported: mp3, wav, m4a, webm, ogg, flac"
 };
 
 // src/recorder.ts
@@ -559,68 +344,447 @@ var TranscriptionService = class {
   }
 };
 
-// src/formatting.ts
-var import_obsidian2 = require("obsidian");
-var FormattingService = class {
+// src/rag.ts
+var RAGService = class {
+  constructor(app, settings) {
+    this.app = app;
+    this.settings = settings;
+  }
   /**
-   * Format transcription text using AI based on the selected template
+   * Search for relevant notes based on the input text
    */
-  async formatTranscription(transcriptionText, template, apiKey, serviceProvider) {
-    if (!template.prompt || template.id === "none") {
-      return { text: transcriptionText, success: true };
+  async search(query, topK = 5) {
+    const results = [];
+    const vault = this.app.vault;
+    const files = vault.getMarkdownFiles().filter(
+      (file) => this.isInWhitelistFolder(file.path)
+    );
+    const keywords = this.extractKeywords(query);
+    for (const file of files) {
+      const content = await vault.cachedRead(file);
+      const score = this.calculateRelevanceScore(content, keywords);
+      if (score > 0) {
+        results.push({
+          file,
+          score,
+          excerpt: this.extractExcerpt(content, keywords)
+        });
+      }
     }
-    const fullPrompt = `${template.prompt}
+    return results.sort((a, b) => b.score - a.score).slice(0, topK);
+  }
+  /**
+   * Check if a file path is in the whitelist folders
+   */
+  isInWhitelistFolder(filePath) {
+    if (this.settings.whitelistFolders.length === 0) {
+      return true;
+    }
+    return this.settings.whitelistFolders.some(
+      (folder) => filePath.startsWith(folder.trim())
+    );
+  }
+  /**
+   * Extract keywords from the query text
+   */
+  extractKeywords(text) {
+    const stopwords = ["\uC740", "\uB294", "\uC774", "\uAC00", "\uC744", "\uB97C", "\uC5D0", "\uC758", "\uC640", "\uACFC", "\uB85C", "\uC73C\uB85C", "\uC5D0\uC11C", "\uD558\uB2E4", "\uB418\uB2E4", "\uC788\uB2E4", "\uC5C6\uB2E4"];
+    const words = text.split(/[\s,.!?;:'"()[\]{}]+/).filter((word) => word.length > 1).filter((word) => !stopwords.includes(word)).map((word) => word.toLowerCase());
+    return [...new Set(words)];
+  }
+  /**
+   * Calculate relevance score based on keyword matching
+   */
+  calculateRelevanceScore(content, keywords) {
+    const lowerContent = content.toLowerCase();
+    let score = 0;
+    for (const keyword of keywords) {
+      const regex = new RegExp(keyword, "gi");
+      const matches = lowerContent.match(regex);
+      if (matches) {
+        score += matches.length;
+      }
+    }
+    return score;
+  }
+  /**
+   * Extract relevant excerpt from content
+   */
+  extractExcerpt(content, keywords, maxLength = 300) {
+    const lowerContent = content.toLowerCase();
+    for (const keyword of keywords) {
+      const index = lowerContent.indexOf(keyword.toLowerCase());
+      if (index !== -1) {
+        const start = Math.max(0, index - 50);
+        const end = Math.min(content.length, index + maxLength);
+        return "..." + content.slice(start, end).trim() + "...";
+      }
+    }
+    return content.slice(0, maxLength).trim() + "...";
+  }
+  /**
+   * Update settings
+   */
+  updateSettings(settings) {
+    this.settings = settings;
+  }
+};
 
-${transcriptionText}`;
+// src/generation.ts
+var import_obsidian2 = require("obsidian");
+var DEFAULT_TEMPLATE = `\uB2F9\uC2E0\uC740 \uD0C1\uC6D4\uD55C \uC601\uC131\uC744 \uC9C0\uB2CC \uC2E0\uD559\uC790\uC774\uC790, \uCCAD\uC911\uC758 \uB9C8\uC74C\uC744 \uC704\uB85C\uD558\uB294 \uC124\uAD50\uC790\uC785\uB2C8\uB2E4.
+
+\uC0AC\uC6A9\uC790\uC758 \uBB35\uC0C1 \uB0B4\uC6A9\uACFC \uAD00\uB828 \uB178\uD2B8\uB97C \uBC14\uD0D5\uC73C\uB85C, \uAE4A\uC774 \uC788\uB294 \uC2E0\uD559\uC801 \uD1B5\uCC30\uACFC \uB530\uB73B\uD55C \uBAA9\uD68C\uC801 \uC801\uC6A9\uC774 \uB2F4\uAE34 \uBB35\uC0C1\uAE00\uC744 \uC791\uC131\uD574 \uC8FC\uC138\uC694.
+\uBC18\uB4DC\uC2DC \uC544\uB798 JSON \uD615\uC2DD\uC73C\uB85C \uCD9C\uB825\uD574\uC57C \uD569\uB2C8\uB2E4.
+
+## \uCD9C\uB825 \uD615\uC2DD (JSON)
+{
+  "markdown": "## \uC624\uB298\uC758 \uBB35\uC0C1\\n[\uAE4A\uC774 \uC788\uB294 \uBCF8\uBB38 \uD574\uC11D]\\n\\n### \uC801\uC6A9\\n[\uAD6C\uCCB4\uC801\uC778 \uC0B6\uC758 \uC801\uC6A9]\\n\\n### \uAE30\uB3C4\\n[\uC601\uC131 \uC788\uB294 \uAE30\uB3C4\uBB38]",
+  "ttsScript": "(\uBC30\uACBD\uC74C\uC545\uC774 \uAE54\uB9B0 \uB4EF\uD55C \uCC28\uBD84\uD558\uACE0 \uD638\uC18C\uB825 \uC9D9\uC740 \uC5B4\uC870\uB85C) \uC0AC\uB791\uD558\uB294 \uC5EC\uB7EC\uBD84, \uC624\uB298\uC758 \uBB35\uC0C1\uC744 \uB098\uB215\uB2C8\uB2E4. ... (\uBCF8\uBB38\uC758 \uD575\uC2EC \uBA54\uC2DC\uC9C0\uB97C \uAD6C\uC5B4\uCCB4\uB85C \uD480\uC5B4\uC11C) ... \uADF8\uB807\uB2E4\uBA74 \uC774\uAC83\uC744 \uC6B0\uB9AC \uC0B6\uC5D0 \uC5B4\uB5BB\uAC8C \uC801\uC6A9\uD560 \uC218 \uC788\uC744\uAE4C\uC694? ... (\uC801\uC6A9\uC810 \uC81C\uC2DC) ... \uC774\uC81C \uD568\uAED8 \uAE30\uB3C4\uD558\uACA0\uC2B5\uB2C8\uB2E4. ... (\uAE30\uB3C4\uBB38 \uB0AD\uB3C5) ... \uC608\uC218\uB2D8\uC758 \uC774\uB984\uC73C\uB85C \uAE30\uB3C4\uB4DC\uB9BD\uB2C8\uB2E4. \uC544\uBA58."
+}
+
+## \uC791\uC131 \uC9C0\uCE68
+1. **Markdown \uBCF8\uBB38**:
+   - \uC2E0\uD559\uC801 \uAE4A\uC774\uAC00 \uC788\uC5B4\uC57C \uD558\uBA70, \uBCF8\uBB38\uC758 \uB9E5\uB77D\uC744 \uC815\uD655\uD788 \uC9DA\uC5B4\uC57C \uD568.
+   - \uC801\uC6A9\uC740 \uB9C9\uC5F0\uD558\uC9C0 \uC54A\uACE0 \uAD6C\uCCB4\uC801\uC774\uC5B4\uC57C \uD568.
+
+2. **TTS \uB300\uBCF8 (ttsScript)**:
+   - **\uC5B4\uC870**: \uB77C\uB514\uC624 \uC2EC\uC57C \uBC29\uC1A1 \uC9C4\uD589\uC790\uCC98\uB7FC \uB530\uB73B\uD558\uACE0 \uCC28\uBD84\uD558\uBA70, \uB4E3\uB294 \uC774\uC758 \uAC10\uC815\uC744 \uC5B4\uB8E8\uB9CC\uC9C0\uB294 \uD1A4.
+   - **\uC139\uC158 \uAD6C\uBD84**: "\uC624\uB298\uC758 \uBB35\uC0C1 \uBCF8\uBB38\uC785\uB2C8\uB2E4", "\uC7A0\uC2DC \uC6B0\uB9AC \uC0B6\uC744 \uB3CC\uC544\uBD05\uC2DC\uB2E4", "\uD568\uAED8 \uAE30\uB3C4\uB4DC\uB9AC\uACA0\uC2B5\uB2C8\uB2E4"\uC640 \uAC19\uC740 \uC790\uC5F0\uC2A4\uB7EC\uC6B4 \uC5F0\uACB0 \uBA58\uD2B8\uB97C \uBC18\uB4DC\uC2DC \uD3EC\uD568\uD560 \uAC83.
+   - **\uBB38\uCCB4**: \uB531\uB531\uD55C \uBB38\uC5B4\uCCB4\uAC00 \uC544\uB2CC, \uBC14\uB85C \uC606\uC5D0\uC11C \uC774\uC57C\uAE30\uD574\uC8FC\uB294 \uB4EF\uD55C \uBD80\uB4DC\uB7EC\uC6B4 \uAD6C\uC5B4\uCCB4 \uC0AC\uC6A9. \uC774\uBAA8\uC9C0\uB098 \uD2B9\uC218\uBB38\uC790\uB294 \uC81C\uAC70.
+   - \uC27C\uD45C(,)\uC640 \uB9C8\uCE68\uD45C(.)\uB97C \uC801\uC808\uD788 \uC0AC\uC6A9\uD558\uC5EC \uD638\uD761\uC744 \uC870\uC808\uD560 \uAC83.
+
+3. \uC5B8\uC5B4: \uD55C\uAD6D\uC5B4`;
+var GenerationService = class {
+  constructor(settings) {
+    this.settings = settings;
+  }
+  /**
+   * Generate devotional content
+   */
+  async generate(userInput, ragResults) {
+    if (!this.settings.geminiApiKey) {
+      throw new Error("Gemini API key is not configured");
+    }
+    const context = this.buildContext(ragResults);
+    const prompt = this.buildPrompt(userInput, context);
+    const response = await this.callGemini(prompt);
+    return this.parseResponse(response);
+  }
+  /**
+   * Build context from RAG search results
+   */
+  buildContext(results) {
+    if (results.length === 0) {
+      return "\uAD00\uB828 \uB178\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.";
+    }
+    return results.map(
+      (result, index) => `### \uAD00\uB828 \uB178\uD2B8 ${index + 1}: ${result.file.basename}
+${result.excerpt}`
+    ).join("\n\n");
+  }
+  /**
+   * Build the final prompt
+   */
+  buildPrompt(userInput, context) {
+    const template = this.settings.devotionalTemplate || DEFAULT_TEMPLATE;
+    return `${template}
+
+## \uC0AC\uC6A9\uC790 \uBB35\uC0C1 \uB0B4\uC6A9
+${userInput}
+
+## \uC0AC\uC6A9\uC790\uC758 \uAE30\uC874 \uB178\uD2B8 (\uCC38\uACE0\uC6A9)
+${context}
+
+\uC704 \uB0B4\uC6A9\uC744 \uBC14\uD0D5\uC73C\uB85C JSON \uD615\uC2DD\uC758 \uBB35\uC0C1\uAE00\uC744 \uC791\uC131\uD574 \uC8FC\uC138\uC694.`;
+  }
+  /**
+   * Call Gemini API
+   */
+  async callGemini(prompt) {
+    var _a, _b, _c, _d, _e;
+    const model = this.settings.geminiModel || "gemini-2.0-flash";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.settings.geminiApiKey}`;
     try {
-      const formattedText = await this.callChatAPI(fullPrompt, apiKey, serviceProvider);
-      return { text: formattedText, success: true };
+      const response = await (0, import_obsidian2.requestUrl)({
+        url: apiUrl,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+            response_mime_type: "application/json"
+          }
+        })
+      });
+      if (response.status !== 200) {
+        throw new Error(`Gemini API error: ${response.status}`);
+      }
+      const data = response.json;
+      return ((_e = (_d = (_c = (_b = (_a = data.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text) || "{}";
     } catch (error) {
-      console.error("Formatting error:", error);
-      return { text: transcriptionText, success: false };
+      console.error("Gemini API error:", error);
+      throw new Error(`Failed to generate devotional: ${error.message}`);
+    }
+  }
+  parseResponse(response) {
+    let cleanedResponse = response.trim();
+    const codeBlockMatch = cleanedResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (codeBlockMatch && codeBlockMatch[1]) {
+      cleanedResponse = codeBlockMatch[1].trim();
+    }
+    try {
+      const parsed = JSON.parse(cleanedResponse);
+      return {
+        markdown: parsed.markdown || "\uBB35\uC0C1\uAE00 \uC0DD\uC131 \uC2E4\uD328",
+        ttsScript: parsed.ttsScript || ""
+      };
+    } catch (e) {
+      console.error("[DevotionalVoice] Failed to parse JSON response:", e, "Raw response:", response);
+      return {
+        markdown: response,
+        ttsScript: ""
+      };
     }
   }
   /**
-   * Call OpenAI or Groq Chat API for text formatting
+   * Update settings
    */
-  async callChatAPI(prompt, apiKey, serviceProvider) {
-    const endpoint = serviceProvider === "openai" ? "https://api.openai.com/v1/chat/completions" : "https://api.groq.com/openai/v1/chat/completions";
-    const model = serviceProvider === "openai" ? "gpt-4o-mini" : "llama-3.1-8b-instant";
-    const response = await (0, import_obsidian2.requestUrl)({
-      url: endpoint,
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          {
-            role: "system",
-            content: "\uB2F9\uC2E0\uC740 \uC804\uBB38 \uBB38\uC11C \uC815\uB9AC \uB3C4\uC6B0\uBBF8\uC785\uB2C8\uB2E4. \uC0AC\uC6A9\uC790\uAC00 \uC81C\uACF5\uD558\uB294 \uC804\uC0AC \uB0B4\uC6A9\uC744 \uC694\uCCAD\uB41C \uD615\uC2DD\uC5D0 \uB9DE\uAC8C \uAE54\uB054\uD558\uAC8C \uC815\uB9AC\uD574\uC8FC\uC138\uC694. \uB9C8\uD06C\uB2E4\uC6B4 \uD615\uC2DD\uC744 \uC0AC\uC6A9\uD558\uACE0, \uC6D0\uBCF8 \uB0B4\uC6A9\uC758 \uD575\uC2EC\uC744 \uC720\uC9C0\uD558\uBA74\uC11C \uAD6C\uC870\uD654\uD574\uC8FC\uC138\uC694."
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        // Lower temperature for consistent formatting
-        max_tokens: 4e3
-      })
-    });
-    if (response.status !== 200) {
-      throw new Error(`API request failed with status ${response.status}`);
+  updateSettings(settings) {
+    this.settings = settings;
+  }
+};
+
+// src/tts.ts
+var import_obsidian3 = require("obsidian");
+var TTSService = class {
+  constructor(settings) {
+    this.currentAudio = null;
+    this.settings = settings;
+  }
+  async speak(text) {
+    this.stop();
+    if (this.settings.provider === "google") {
+      if ("speechSynthesis" in window) {
+        this.speakWithWebSpeech(text);
+      } else {
+        new import_obsidian3.Notice("TTS not supported");
+      }
+      return;
     }
-    const data = response.json;
-    return data.choices[0].message.content;
+    const audioBuffer = await this.generateAudio(text);
+    if (audioBuffer) {
+      await this.playAudioBuffer(audioBuffer);
+    }
+  }
+  async generateAudio(text) {
+    if (this.settings.provider === "openai") {
+      return await this.generateOpenAIAudio(text);
+    } else if (this.settings.provider === "gemini") {
+      return await this.generateGeminiAudio(text);
+    }
+    return null;
+  }
+  stop() {
+    if ("speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (this.currentAudio) {
+      this.currentAudio.pause();
+      this.currentAudio = null;
+    }
+  }
+  speakWithWebSpeech(text) {
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = this.settings.language || "ko-KR";
+    utterance.rate = 1;
+    const voices = speechSynthesis.getVoices();
+    const voice = voices.find((v) => v.lang.startsWith(this.settings.language.substring(0, 2)));
+    if (voice)
+      utterance.voice = voice;
+    window.speechSynthesis.speak(utterance);
+  }
+  async generateOpenAIAudio(text) {
+    if (!this.settings.openaiApiKey) {
+      new import_obsidian3.Notice("OpenAI API Key\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.");
+      return null;
+    }
+    try {
+      const response = await (0, import_obsidian3.requestUrl)({
+        url: "https://api.openai.com/v1/audio/speech",
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${this.settings.openaiApiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "tts-1",
+          input: text,
+          voice: this.settings.voiceId || "nova",
+          response_format: "mp3"
+        })
+      });
+      if (response.status !== 200)
+        throw new Error(`OpenAI TTS Error: ${response.status}`);
+      return response.arrayBuffer;
+    } catch (error) {
+      console.error("[DevotionalVoice] OpenAI TTS failed:", error);
+      new import_obsidian3.Notice(`OpenAI TTS \uC2E4\uD328: ${error.message}`);
+      return null;
+    }
+  }
+  async generateGeminiAudio(text) {
+    var _a, _b, _c, _d, _e;
+    if (!this.settings.googleApiKey) {
+      new import_obsidian3.Notice("Gemini API Key\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.");
+      return null;
+    }
+    try {
+      let model = this.settings.geminiModel || "gemini-2.5-flash-preview-tts";
+      if (model.startsWith("models/"))
+        model = model.replace("models/", "");
+      const voiceName = this.settings.voiceId || "Kore";
+      const response = await (0, import_obsidian3.requestUrl)({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.settings.googleApiKey}`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName }
+              }
+            }
+          }
+        })
+      });
+      if (response.status !== 200) {
+        console.error("[DevotionalVoice] Gemini API Error:", response.text);
+        throw new Error(`Gemini API Error: ${response.status}`);
+      }
+      const data = response.json;
+      if (!((_c = (_b = (_a = data.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts)) {
+        throw new Error("Invalid Gemini response format");
+      }
+      const parts = data.candidates[0].content.parts;
+      for (const part of parts) {
+        if ((_e = (_d = part.inlineData) == null ? void 0 : _d.mimeType) == null ? void 0 : _e.startsWith("audio/")) {
+          const base64Data = part.inlineData.data;
+          const mimeType = part.inlineData.mimeType;
+          const binaryString = window.atob(base64Data);
+          const rawBytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            rawBytes[i] = binaryString.charCodeAt(i);
+          }
+          const wavBuffer = this.convertToWav(rawBytes, mimeType);
+          return wavBuffer;
+        }
+      }
+      new import_obsidian3.Notice("Gemini TTS: \uC624\uB514\uC624 \uB370\uC774\uD130\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.");
+      return null;
+    } catch (error) {
+      console.error("[DevotionalVoice] Gemini TTS failed:", error);
+      new import_obsidian3.Notice(`Gemini TTS \uC2E4\uD328: ${error.message}`);
+      return null;
+    }
+  }
+  /**
+   * Convert raw PCM audio data to WAV format
+   */
+  convertToWav(audioData, mimeType) {
+    const params = this.parseAudioMimeType(mimeType);
+    const bitsPerSample = params.bitsPerSample;
+    const sampleRate = params.rate;
+    const numChannels = 1;
+    const dataSize = audioData.length;
+    const bytesPerSample = bitsPerSample / 8;
+    const blockAlign = numChannels * bytesPerSample;
+    const byteRate = sampleRate * blockAlign;
+    const chunkSize = 36 + dataSize;
+    const header = new ArrayBuffer(44);
+    const view = new DataView(header);
+    this.writeString(view, 0, "RIFF");
+    view.setUint32(4, chunkSize, true);
+    this.writeString(view, 8, "WAVE");
+    this.writeString(view, 12, "fmt ");
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, byteRate, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, bitsPerSample, true);
+    this.writeString(view, 36, "data");
+    view.setUint32(40, dataSize, true);
+    const wavBuffer = new ArrayBuffer(44 + dataSize);
+    const wavView = new Uint8Array(wavBuffer);
+    wavView.set(new Uint8Array(header), 0);
+    wavView.set(audioData, 44);
+    return wavBuffer;
+  }
+  writeString(view, offset, str) {
+    for (let i = 0; i < str.length; i++) {
+      view.setUint8(offset + i, str.charCodeAt(i));
+    }
+  }
+  parseAudioMimeType(mimeType) {
+    let bitsPerSample = 16;
+    let rate = 24e3;
+    const parts = mimeType.split(";");
+    for (const param of parts) {
+      const trimmed = param.trim();
+      if (trimmed.toLowerCase().startsWith("rate=")) {
+        try {
+          rate = parseInt(trimmed.split("=")[1], 10);
+        } catch (e) {
+        }
+      } else if (trimmed.startsWith("audio/L")) {
+        try {
+          bitsPerSample = parseInt(trimmed.split("L")[1], 10);
+        } catch (e) {
+        }
+      }
+    }
+    return { bitsPerSample, rate };
+  }
+  async playAudioBuffer(arrayBuffer) {
+    try {
+      const blob = new Blob([arrayBuffer], { type: "audio/wav" });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      this.currentAudio = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        this.currentAudio = null;
+      };
+      audio.onerror = (e) => {
+        console.error("[DevotionalVoice] Audio playback error:", e);
+        new import_obsidian3.Notice("\uC624\uB514\uC624 \uC7AC\uC0DD \uC2E4\uD328");
+        URL.revokeObjectURL(url);
+        this.currentAudio = null;
+      };
+      await audio.play();
+    } catch (e) {
+      console.error("[DevotionalVoice] Audio playback failed:", e);
+      new import_obsidian3.Notice("\uC624\uB514\uC624 \uC7AC\uC0DD \uC2E4\uD328");
+    }
+  }
+  updateSettings(settings) {
+    this.settings = settings;
   }
 };
 
 // src/modals.ts
-var import_obsidian3 = require("obsidian");
-var RecordingModal = class extends import_obsidian3.Modal {
+var import_obsidian4 = require("obsidian");
+var RecordingModal = class extends import_obsidian4.Modal {
   constructor(app, onStop) {
     super(app);
     this.onStop = onStop;
@@ -661,485 +825,317 @@ var RecordingModal = class extends import_obsidian3.Modal {
     this.contentEl.empty();
   }
 };
-var ProcessingModal = class extends import_obsidian3.Modal {
-  constructor(app) {
-    super(app);
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("voice-writing-processing-modal");
-    const container = contentEl.createDiv({ cls: "processing-container" });
-    const spinner = container.createDiv({ cls: "voice-writing-spinner" });
-    spinner.createDiv({ cls: "double-bounce1" });
-    spinner.createDiv({ cls: "double-bounce2" });
-    container.createEl("h2", { text: "Transcribing..." });
-    container.createEl("p", { text: "Sending audio to AI for text conversion." });
-    container.createEl("small", { text: "This usually takes a few seconds.", cls: "processing-hint" });
-  }
-  onClose() {
-    const { contentEl } = this;
-    contentEl.empty();
-  }
-};
-var QuickOptionModal = class extends import_obsidian3.Modal {
-  constructor(app, currentLanguage, currentService, currentDiarization, onSelect) {
-    super(app);
-    this.currentLanguage = currentLanguage;
-    this.currentService = currentService;
-    this.currentDiarization = currentDiarization;
-    this.onSelect = onSelect;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "Voice Writing Options" });
-    let tempLanguage = this.currentLanguage;
-    let tempService = this.currentService;
-    let tempDiarization = this.currentDiarization;
-    new import_obsidian3.Setting(contentEl).setName("Language").setDesc("Select audio language").addDropdown((drop) => {
-      SUPPORTED_LANGUAGES.forEach((lang) => {
-        drop.addOption(lang.code, lang.name);
-      });
-      drop.setValue(tempLanguage).onChange((value) => tempLanguage = value);
-    });
-    new import_obsidian3.Setting(contentEl).setName("Service").setDesc("Transcription provider").addDropdown(
-      (drop) => drop.addOption("openai", "OpenAI Whisper").addOption("groq", "Groq (Fast)").setValue(tempService).onChange((value) => tempService = value)
-    );
-    new import_obsidian3.Setting(contentEl).setName(DIARIZATION_NOTE.LABEL).setDesc(DIARIZATION_NOTE.INFO).addToggle(
-      (toggle) => toggle.setValue(tempDiarization).onChange((value) => tempDiarization = value)
-    );
-    new import_obsidian3.Setting(contentEl).addButton(
-      (btn) => btn.setButtonText("Apply").setCta().onClick(() => {
-        this.onSelect(tempLanguage, tempService, tempDiarization);
-        this.close();
-      })
-    );
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
-var FileUploadModal = class extends import_obsidian3.Modal {
-  constructor(app, onFileSelected) {
-    super(app);
-    this.onFileSelected = onFileSelected;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("voice-writing-upload-modal");
-    const container = contentEl.createDiv({ cls: "upload-container" });
-    container.createEl("h2", { text: "Upload Audio File" });
-    container.createEl("p", {
-      text: "Select an audio file to transcribe.",
-      cls: "upload-description"
-    });
-    const formatsInfo = container.createDiv({ cls: "supported-formats" });
-    formatsInfo.createEl("small", {
-      text: `Supported: ${SUPPORTED_AUDIO_FORMATS.join(", ")} (Max ${API_CONFIG.MAX_FILE_SIZE_MB}MB)`
-    });
-    const dropZone = container.createDiv({ cls: "upload-drop-zone" });
-    dropZone.createEl("span", { text: "", cls: "upload-icon audio-icon" });
-    dropZone.createEl("p", { text: "Drag & drop audio file here" });
-    dropZone.createEl("p", { text: "or", cls: "upload-or" });
-    this.fileInputEl = dropZone.createEl("input", {
-      type: "file",
-      cls: "upload-file-input"
-    });
-    this.fileInputEl.accept = SUPPORTED_AUDIO_FORMATS.map((ext) => `.${ext}`).join(",");
-    this.fileInputEl.style.display = "none";
-    const browseBtn = dropZone.createEl("button", {
-      text: "Browse Files",
-      cls: "mod-cta upload-browse-btn"
-    });
-    browseBtn.onclick = () => this.fileInputEl.click();
-    this.fileInputEl.onchange = () => {
-      const files = this.fileInputEl.files;
-      if (files && files.length > 0) {
-        this.handleFile(files[0]);
-      }
-    };
-    dropZone.ondragover = (e) => {
-      e.preventDefault();
-      dropZone.addClass("drag-over");
-    };
-    dropZone.ondragleave = () => {
-      dropZone.removeClass("drag-over");
-    };
-    dropZone.ondrop = (e) => {
-      var _a;
-      e.preventDefault();
-      dropZone.removeClass("drag-over");
-      const files = (_a = e.dataTransfer) == null ? void 0 : _a.files;
-      if (files && files.length > 0) {
-        this.handleFile(files[0]);
-      }
-    };
-    const btnContainer = container.createDiv({ cls: "upload-buttons" });
-    const cancelBtn = btnContainer.createEl("button", {
-      text: "Cancel",
-      cls: "upload-cancel-btn"
-    });
-    cancelBtn.onclick = () => this.close();
-  }
-  handleFile(file) {
-    var _a;
-    const ext = ((_a = file.name.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
-    if (!SUPPORTED_AUDIO_FORMATS.includes(ext)) {
-      const errorEl = this.contentEl.querySelector(".upload-error");
-      if (errorEl)
-        errorEl.remove();
-      const error = this.contentEl.createDiv({ cls: "upload-error" });
-      error.createEl("span", { text: TEMPLATE_MESSAGES.INVALID_FILE_TYPE });
-      return;
-    }
-    const maxSize = API_CONFIG.MAX_FILE_SIZE_MB * 1024 * 1024;
-    if (file.size > maxSize) {
-      const errorEl = this.contentEl.querySelector(".upload-error");
-      if (errorEl)
-        errorEl.remove();
-      const error = this.contentEl.createDiv({ cls: "upload-error" });
-      error.createEl("span", { text: TEMPLATE_MESSAGES.FILE_TOO_LARGE });
-      return;
-    }
-    this.onFileSelected(file);
-    this.close();
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
-var TemplateSelectionModal = class extends import_obsidian3.Modal {
-  constructor(app, customTemplates, onTemplateSelected) {
-    super(app);
-    this.customTemplates = customTemplates;
-    this.onTemplateSelected = onTemplateSelected;
-  }
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.addClass("voice-writing-template-modal");
-    const container = contentEl.createDiv({ cls: "template-container" });
-    container.createEl("h2", { text: "Format Transcription" });
-    container.createEl("p", {
-      text: TEMPLATE_MESSAGES.SELECT_TEMPLATE,
-      cls: "template-description"
-    });
-    const grid = container.createDiv({ cls: "template-grid" });
-    for (const template of BUILT_IN_TEMPLATES) {
-      this.createTemplateCard(grid, template);
-    }
-    if (this.customTemplates.length > 0) {
-      container.createEl("h3", { text: "Custom Templates", cls: "custom-templates-header" });
-      const customGrid = container.createDiv({ cls: "template-grid" });
-      for (const template of this.customTemplates) {
-        this.createTemplateCard(customGrid, template);
-      }
-    }
-    const btnContainer = container.createDiv({ cls: "template-buttons" });
-    const cancelBtn = btnContainer.createEl("button", {
-      text: "Skip (Use Raw Text)",
-      cls: "template-skip-btn"
-    });
-    cancelBtn.onclick = () => {
-      this.onTemplateSelected(null);
-      this.close();
-    };
-  }
-  createTemplateCard(parent, template) {
-    const card = parent.createDiv({ cls: "template-card" });
-    const iconClasses = {
-      "none": "template-icon-none",
-      "meeting": "template-icon-meeting",
-      "lecture": "template-icon-lecture",
-      "idea": "template-icon-idea",
-      "interview": "template-icon-interview",
-      "custom": "template-icon-custom"
-    };
-    const iconClass = iconClasses[template.id] || "template-icon-default";
-    card.createEl("span", { cls: `template-icon ${iconClass}` });
-    card.createEl("h4", { text: template.nameKo || template.name });
-    card.createEl("p", { text: template.description, cls: "template-desc" });
-    card.onclick = () => {
-      this.onTemplateSelected(template);
-      this.close();
-    };
-  }
-  onClose() {
-    this.contentEl.empty();
-  }
-};
 
 // main.ts
 var DEFAULT_SETTINGS = {
   openaiApiKey: "",
   groqApiKey: "",
-  language: "auto",
-  serviceProvider: "openai",
-  enableSpeakerDiarization: false,
-  customTemplates: []
+  language: "ko",
+  serviceProvider: "groq",
+  whitelistFolders: "",
+  ragMaxResults: 5,
+  geminiApiKey: "",
+  geminiModel: "gemini-2.0-flash",
+  devotionalTemplate: "",
+  ttsEnabled: true,
+  ttsProvider: "gemini",
+  // Default to gemini
+  ttsOpenAiVoice: "nova",
+  ttsGeminiModel: "gemini-2.5-flash-preview-tts",
+  ttsGeminiVoice: "Kore",
+  ttsLanguage: "ko-KR"
 };
-var VoiceWritingPlugin = class extends import_obsidian4.Plugin {
+var DevotionalVoicePlugin = class extends import_obsidian5.Plugin {
   constructor() {
     super(...arguments);
     this.recordingModal = null;
   }
   async onload() {
+    console.log("[DevotionalVoice] Loading plugin...");
     await this.loadSettings();
     this.recorder = new MicrophoneRecorder();
     this.transcriptionService = new TranscriptionService();
-    this.formattingService = new FormattingService();
-    this.ribbonIconEl = this.addRibbonIcon("mic", "Voice Writing", (evt) => {
-      this.toggleRecording();
+    this.ragService = new RAGService(this.app, this.getRAGSettings());
+    this.generationService = new GenerationService(this.getGenerationSettings());
+    this.ttsService = new TTSService(this.getTTSSettings());
+    this.ribbonIconEl = this.addRibbonIcon("book-open", "Devotional Voice", (evt) => {
+      this.showInputModeSelection();
     });
-    this.ribbonIconEl.addClass("voice-writing-ribbon");
+    this.ribbonIconEl.addClass("devotional-voice-ribbon");
     this.statusBarItem = this.addStatusBarItem();
-    this.updateStatusBar("Idle");
-    this.statusBarItem.onClickEvent(() => {
-      this.toggleRecording();
+    this.updateStatusBar("Ready");
+    this.addCommand({
+      id: "devotional-from-voice",
+      name: "From Voice: \uC74C\uC131\uC73C\uB85C \uBB35\uC0C1 \uC2DC\uC791",
+      callback: () => this.startVoiceDevotional()
     });
     this.addCommand({
-      id: "start-recording",
-      name: "Start Recording",
-      callback: () => this.startRecording()
+      id: "devotional-from-selection",
+      name: "From Selection: \uC120\uD0DD \uD14D\uC2A4\uD2B8\uB85C \uBB35\uC0C1",
+      editorCallback: (editor) => this.startSelectionDevotional(editor)
     });
     this.addCommand({
-      id: "stop-recording",
-      name: "Stop Recording",
-      callback: () => this.stopRecording()
+      id: "devotional-from-note",
+      name: "From Current Note: \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1",
+      callback: () => this.startNoteDevotional()
     });
     this.addCommand({
-      id: "quick-options",
-      name: "Quick Options",
-      callback: () => {
-        new QuickOptionModal(
-          this.app,
-          this.settings.language,
-          this.settings.serviceProvider,
-          this.settings.enableSpeakerDiarization,
-          async (lang, service, diarization) => {
-            this.settings.language = lang;
-            this.settings.serviceProvider = service;
-            this.settings.enableSpeakerDiarization = diarization;
-            await this.saveSettings();
-            new import_obsidian4.Notice(SUCCESS_MESSAGES.QUICK_SETTINGS_SAVED(service, lang, diarization));
+      id: "devotional-read-aloud",
+      name: "Read Aloud: TTS \uC7AC\uC0DD",
+      editorCallback: (editor) => this.readAloud(editor)
+    });
+    this.addCommand({
+      id: "devotional-stop-tts",
+      name: "Stop TTS: \uC7AC\uC0DD \uC911\uC9C0",
+      callback: () => this.ttsService.stop()
+    });
+    this.addCommand({
+      id: "devotional-save-audio",
+      name: "Save Audio: TTS \uB300\uBCF8 \uC624\uB514\uC624 \uC800\uC7A5",
+      editorCallback: (editor) => this.saveAudioToNote(editor)
+    });
+    this.addSettingTab(new DevotionalVoiceSettingTab(this.app, this));
+    console.log("[DevotionalVoice] Plugin loaded successfully.");
+  }
+  getRAGSettings() {
+    return {
+      whitelistFolders: this.settings.whitelistFolders.split(",").map((f) => f.trim()).filter((f) => f.length > 0),
+      maxResults: this.settings.ragMaxResults
+    };
+  }
+  getGenerationSettings() {
+    return {
+      geminiApiKey: this.settings.geminiApiKey,
+      geminiModel: this.settings.geminiModel,
+      devotionalTemplate: this.settings.devotionalTemplate
+    };
+  }
+  getTTSSettings() {
+    return {
+      provider: this.settings.ttsProvider,
+      googleApiKey: this.settings.geminiApiKey,
+      openaiApiKey: this.settings.openaiApiKey,
+      elevenlabsApiKey: "",
+      voiceId: this.settings.ttsProvider === "openai" ? this.settings.ttsOpenAiVoice : this.settings.ttsGeminiVoice,
+      geminiModel: this.settings.ttsGeminiModel,
+      language: this.settings.ttsLanguage
+    };
+  }
+  showInputModeSelection() {
+    new InputModeModal(this.app, (mode) => {
+      switch (mode) {
+        case "voice":
+          this.startVoiceDevotional();
+          break;
+        case "selection":
+          const view = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+          if (view) {
+            this.startSelectionDevotional(view.editor);
+          } else {
+            new import_obsidian5.Notice("\uD14D\uC2A4\uD2B8\uB97C \uC120\uD0DD\uD560 \uC218 \uC788\uB294 \uB178\uD2B8\uB97C \uC5F4\uC5B4\uC8FC\uC138\uC694.");
           }
-        ).open();
+          break;
+        case "note":
+          this.startNoteDevotional();
+          break;
       }
-    });
-    this.addCommand({
-      id: "upload-audio-file",
-      name: "Upload Audio File",
-      callback: () => {
-        new FileUploadModal(this.app, (file) => {
-          this.transcribeFile(file);
-        }).open();
-      }
-    });
-    this.addSettingTab(new VoiceWritingSettingTab(this.app, this));
+    }).open();
   }
-  async toggleRecording() {
-    if (this.recorder.isRecording()) {
-      await this.stopRecording();
-    } else {
-      await this.startRecording();
-    }
-  }
-  async startRecording() {
+  async startVoiceDevotional() {
     try {
       await this.recorder.startRecording();
-      new import_obsidian4.Notice(SUCCESS_MESSAGES.RECORDING_STARTED);
-      this.ribbonIconEl.addClass("voice-writing-recording");
+      new import_obsidian5.Notice("\u{1F3A4} \uB179\uC74C \uC2DC\uC791...");
       this.updateStatusBar("Recording...");
-      this.recordingModal = new RecordingModal(this.app, () => {
-        this.stopRecording();
-      });
+      this.recordingModal = new RecordingModal(this.app, () => this.stopVoiceRecording());
       this.recordingModal.open();
     } catch (error) {
-      const recordingError = error;
-      if (recordingError && recordingError.type) {
-        new import_obsidian4.Notice(recordingError.message);
-      } else {
-        new import_obsidian4.Notice(ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR);
-      }
-      console.error("Recording error:", error);
+      console.error("[DevotionalVoice] startVoiceDevotional error:", error);
+      new import_obsidian5.Notice((error == null ? void 0 : error.message) || ERROR_MESSAGES.MICROPHONE_GENERAL_ERROR);
     }
   }
-  async stopRecording() {
+  async stopVoiceRecording() {
     if (this.recordingModal) {
       this.recordingModal.close();
       this.recordingModal = null;
     }
     try {
       const blob = await this.recorder.stopRecording();
-      this.ribbonIconEl.removeClass("voice-writing-recording");
-      this.updateStatusBar("Processing...");
-      const processingModal = new ProcessingModal(this.app);
-      processingModal.open();
-      const fileName = `recording-${Date.now()}.webm`;
-      const arrayBuffer = await blob.arrayBuffer();
-      await this.app.vault.createBinary(fileName, arrayBuffer);
-      try {
-        const apiKey = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
-        const result = await this.transcriptionService.transcribe(
-          blob,
-          apiKey,
-          this.settings.language,
-          this.settings.serviceProvider
-        );
-        processingModal.close();
-        new import_obsidian4.Notice(SUCCESS_MESSAGES.TRANSCRIPTION_COMPLETE);
-        this.updateStatusBar("Idle");
-        new TemplateSelectionModal(
-          this.app,
-          this.settings.customTemplates,
-          async (selectedTemplate) => {
-            let finalText = result.text;
-            if (selectedTemplate && selectedTemplate.id !== "none") {
-              new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMATTING);
-              const apiKey2 = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
-              const formatResult = await this.formattingService.formatTranscription(
-                result.text,
-                selectedTemplate,
-                apiKey2,
-                this.settings.serviceProvider
-              );
-              if (formatResult.success) {
-                finalText = formatResult.text;
-                new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMAT_COMPLETE);
-              } else {
-                new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMAT_FAILED);
-              }
-            }
-            const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
-            if (activeView) {
-              const editor = activeView.editor;
-              const content = `![[${fileName}]]
-
-${finalText}
-`;
-              editor.replaceSelection(content);
-            } else {
-              new import_obsidian4.Notice(SUCCESS_MESSAGES.COPIED_TO_CLIPBOARD);
-              navigator.clipboard.writeText(finalText);
-            }
-          }
-        ).open();
-      } catch (error) {
-        processingModal.close();
-        console.error(error);
-        this.updateStatusBar("Error");
-        const errMsg = error.message;
-        if (errMsg === "API_UNAUTHORIZED") {
-          new import_obsidian4.Notice(ERROR_MESSAGES.API_UNAUTHORIZED, 5e3);
-        } else if (errMsg === "API_QUOTA_EXCEEDED") {
-          new import_obsidian4.Notice(ERROR_MESSAGES.API_QUOTA_EXCEEDED, 5e3);
-        } else {
-          new import_obsidian4.Notice("Transcription failed. Audio saved locally.");
-        }
-        const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
-        if (activeView) {
-          activeView.editor.replaceSelection(`![[${fileName}]]
-`);
-        }
-      }
+      this.updateStatusBar("Transcribing...");
+      new import_obsidian5.Notice("\u{1F4DD} \uC74C\uC131 \uBCC0\uD658 \uC911...");
+      const apiKey = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
+      const result = await this.transcriptionService.transcribe(blob, apiKey, this.settings.language, this.settings.serviceProvider);
+      await this.processDevotional(result.text);
     } catch (error) {
-      this.ribbonIconEl.removeClass("voice-writing-recording");
-      this.updateStatusBar("Idle");
+      console.error("[DevotionalVoice] stopVoiceRecording error:", error);
+      new import_obsidian5.Notice("\uC74C\uC131 \uBCC0\uD658 \uC2E4\uD328");
+      this.updateStatusBar("Error");
     }
   }
-  async transcribeFile(file) {
-    var _a;
-    const processingModal = new ProcessingModal(this.app);
-    processingModal.open();
+  async startSelectionDevotional(editor) {
+    const selectedText = editor.getSelection();
+    if (!selectedText || selectedText.trim().length === 0) {
+      new import_obsidian5.Notice("\uBB35\uC0C1\uD560 \uD14D\uC2A4\uD2B8\uB97C \uC120\uD0DD\uD574\uC8FC\uC138\uC694.");
+      return;
+    }
+    await this.processDevotional(selectedText);
+  }
+  async startNoteDevotional() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new import_obsidian5.Notice("\uC5F4\uB9B0 \uB178\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.");
+      return;
+    }
+    const content = await this.app.vault.read(activeFile);
+    if (!content || content.trim().length === 0) {
+      new import_obsidian5.Notice("\uB178\uD2B8\uAC00 \uBE44\uC5B4\uC788\uC2B5\uB2C8\uB2E4.");
+      return;
+    }
+    await this.processDevotional(content);
+  }
+  async processDevotional(userInput) {
+    console.log("[DevotionalVoice] processDevotional started.");
     this.updateStatusBar("Processing...");
     try {
-      const ext = ((_a = file.name.split(".").pop()) == null ? void 0 : _a.toLowerCase()) || "";
-      const mimeType = AUDIO_MIME_TYPES[ext] || "audio/mpeg";
-      const arrayBuffer = await file.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: mimeType });
-      const apiKey = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
-      const result = await this.transcriptionService.transcribe(
-        blob,
-        apiKey,
-        this.settings.language,
-        this.settings.serviceProvider,
-        file.name,
-        // Pass actual file name
-        mimeType
-        // Pass actual MIME type
-      );
-      processingModal.close();
-      new import_obsidian4.Notice(SUCCESS_MESSAGES.TRANSCRIPTION_COMPLETE);
-      this.updateStatusBar("Idle");
-      new TemplateSelectionModal(
-        this.app,
-        this.settings.customTemplates,
-        async (selectedTemplate) => {
-          let finalText = result.text;
-          if (selectedTemplate && selectedTemplate.id !== "none") {
-            new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMATTING);
-            const apiKey2 = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
-            const formatResult = await this.formattingService.formatTranscription(
-              result.text,
-              selectedTemplate,
-              apiKey2,
-              this.settings.serviceProvider
-            );
-            if (formatResult.success) {
-              finalText = formatResult.text;
-              new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMAT_COMPLETE);
-            } else {
-              new import_obsidian4.Notice(TEMPLATE_MESSAGES.FORMAT_FAILED);
-            }
-          }
-          const activeView = this.app.workspace.getActiveViewOfType(import_obsidian4.MarkdownView);
-          if (activeView) {
-            const editor = activeView.editor;
-            const content = `**File: ${file.name}**
-
-${finalText}
+      new import_obsidian5.Notice("\u{1F50D} \uAD00\uB828 \uB178\uD2B8 \uAC80\uC0C9 \uC911...");
+      const ragResults = await this.ragService.search(userInput, this.settings.ragMaxResults);
+      console.log(`[DevotionalVoice] RAG found ${ragResults.length} results.`);
+      new import_obsidian5.Notice("\u2728 \uBB35\uC0C1\uAE00 \uC0DD\uC131 \uC911...");
+      const result = await this.generationService.generate(userInput, ragResults);
+      console.log("[DevotionalVoice] Generation complete.");
+      const { markdown: devotionalText, ttsScript } = result;
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      if (activeView) {
+        const timestamp = new Date().toLocaleString("ko-KR");
+        let referenceSection = "";
+        if (ragResults.length > 0) {
+          referenceSection = "\n\n### \u{1F4DA} \uCC38\uC870 \uB178\uD2B8\n";
+          ragResults.forEach((r) => {
+            referenceSection += `- [[${r.file.basename}]]
 `;
-            editor.replaceSelection(content);
-          } else {
-            new import_obsidian4.Notice(SUCCESS_MESSAGES.COPIED_TO_CLIPBOARD);
-            navigator.clipboard.writeText(finalText);
-          }
+          });
         }
-      ).open();
-    } catch (error) {
-      processingModal.close();
-      console.error("Transcription error:", error);
-      this.updateStatusBar("Error");
-      const errMsg = error.message;
-      if (errMsg === "API_UNAUTHORIZED") {
-        new import_obsidian4.Notice(ERROR_MESSAGES.API_UNAUTHORIZED, 5e3);
-      } else if (errMsg === "API_QUOTA_EXCEEDED") {
-        new import_obsidian4.Notice(ERROR_MESSAGES.API_QUOTA_EXCEEDED, 5e3);
-      } else {
-        new import_obsidian4.Notice("Transcription failed. Please try again.");
+        const ttsBlock = ttsScript ? `
+
+%%TTS-SCRIPT:${ttsScript}%%` : "";
+        const formattedContent = `
+
+---
+## \u{1F4D6} \uBB35\uC0C1 (${timestamp})
+
+${devotionalText}${referenceSection}${ttsBlock}
+`;
+        activeView.editor.replaceRange(formattedContent, activeView.editor.getCursor());
+        new import_obsidian5.Notice("\u2705 \uBB35\uC0C1\uAE00\uC774 \uC0DD\uC131\uB418\uC5C8\uC2B5\uB2C8\uB2E4!");
+        if (this.settings.ttsEnabled && ttsScript) {
+          setTimeout(() => {
+            new import_obsidian5.Notice('\u{1F50A} TTS \uC7AC\uC0DD: Cmd+P \u2192 "Read Aloud"', 5e3);
+          }, 1500);
+        }
       }
+      this.updateStatusBar("Ready");
+    } catch (error) {
+      console.error("[DevotionalVoice] processDevotional FAILED:", error);
+      new import_obsidian5.Notice(`\uBB35\uC0C1\uAE00 \uC0DD\uC131 \uC2E4\uD328: ${error.message}`);
+      this.updateStatusBar("Error");
     }
+  }
+  async readAloud(editor) {
+    const selectedText = editor.getSelection();
+    if (selectedText && selectedText.trim().length > 0) {
+      new import_obsidian5.Notice("\u{1F50A} \uC120\uD0DD \uD14D\uC2A4\uD2B8 \uC7AC\uC0DD \uC911...");
+      await this.ttsService.speak(selectedText);
+      return;
+    }
+    const content = editor.getValue();
+    const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
+    if (ttsMatch && ttsMatch[1]) {
+      new import_obsidian5.Notice("\u{1F50A} \uBB35\uC0C1 \uB300\uBCF8 \uC7AC\uC0DD \uC911...");
+      await this.ttsService.speak(ttsMatch[1].trim());
+      return;
+    }
+    new import_obsidian5.Notice("\uC77D\uC744 \uD14D\uC2A4\uD2B8\uB97C \uC120\uD0DD\uD558\uAC70\uB098 \uC0DD\uC131\uB41C \uBB35\uC0C1\uAE00\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.");
+  }
+  /**
+   * Save TTS audio file to the same folder as the active note
+   */
+  async saveAudioToNote(editor) {
+    const content = editor.getValue();
+    const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
+    if (!ttsMatch || !ttsMatch[1]) {
+      new import_obsidian5.Notice("TTS \uB300\uBCF8\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uBB35\uC0C1\uAE00\uC744 \uBA3C\uC800 \uC0DD\uC131\uD574\uC8FC\uC138\uC694.");
+      return;
+    }
+    const ttsScript = ttsMatch[1].trim();
+    new import_obsidian5.Notice("\u{1F50A} \uC624\uB514\uC624 \uD30C\uC77C \uC0DD\uC131 \uC911...");
+    const audioBuffer = await this.ttsService.generateAudio(ttsScript);
+    if (!audioBuffer) {
+      new import_obsidian5.Notice("\uC624\uB514\uC624 \uC0DD\uC131 \uC2E4\uD328");
+      return;
+    }
+    const activeFile = this.app.workspace.getActiveFile();
+    let folderPath = "";
+    if (activeFile && activeFile.parent) {
+      folderPath = activeFile.parent.path;
+    }
+    const audioFileName = `Devotional_Audio_${(0, import_obsidian5.moment)().format("YYYYMMDD_HHmmss")}.wav`;
+    const audioFilePath = folderPath ? `${folderPath}/${audioFileName}` : audioFileName;
+    await this.app.vault.createBinary(audioFilePath, audioBuffer);
+    const audioEmbed = `
+
+![[${audioFileName}]]`;
+    const cursor = editor.getCursor("to");
+    editor.replaceRange(audioEmbed, { line: cursor.line + 1, ch: 0 });
+    new import_obsidian5.Notice(`\u{1F4BE} \uC624\uB514\uC624 \uC800\uC7A5 \uC644\uB8CC: ${audioFileName}`);
   }
   updateStatusBar(text) {
-    this.statusBarItem.setText(`Mic: ${text}`);
-    if (text === "Recording...") {
-      this.statusBarItem.addClass("voice-writing-recording");
-    } else {
-      this.statusBarItem.removeClass("voice-writing-recording");
-    }
+    this.statusBarItem.setText(`\u{1F4D6} ${text}`);
   }
   onunload() {
+    this.ttsService.stop();
+    console.log("[DevotionalVoice] Plugin unloaded.");
   }
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
   async saveSettings() {
     await this.saveData(this.settings);
+    this.ragService.updateSettings(this.getRAGSettings());
+    this.generationService.updateSettings(this.getGenerationSettings());
+    this.ttsService.updateSettings(this.getTTSSettings());
   }
 };
-var VoiceWritingSettingTab = class extends import_obsidian4.PluginSettingTab {
+var InputModeModal = class extends import_obsidian5.Modal {
+  constructor(app, onSelect) {
+    super(app);
+    this.onSelect = onSelect;
+  }
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.addClass("devotional-input-modal");
+    contentEl.createEl("h2", { text: "\u{1F4D6} \uBB35\uC0C1 \uC785\uB825 \uBC29\uC2DD \uC120\uD0DD" });
+    const buttonContainer = contentEl.createDiv({ cls: "input-mode-buttons" });
+    const voiceBtn = buttonContainer.createEl("button", { text: "\u{1F3A4} \uC74C\uC131 \uB179\uC74C", cls: "mod-cta" });
+    voiceBtn.onclick = () => {
+      this.close();
+      this.onSelect("voice");
+    };
+    const selectionBtn = buttonContainer.createEl("button", { text: "\u{1F4DD} \uD14D\uC2A4\uD2B8 \uC120\uD0DD" });
+    selectionBtn.onclick = () => {
+      this.close();
+      this.onSelect("selection");
+    };
+    const noteBtn = buttonContainer.createEl("button", { text: "\u{1F4C2} \uD604\uC7AC \uB178\uD2B8" });
+    noteBtn.onclick = () => {
+      this.close();
+      this.onSelect("note");
+    };
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+var DevotionalVoiceSettingTab = class extends import_obsidian5.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
@@ -1147,83 +1143,76 @@ var VoiceWritingSettingTab = class extends import_obsidian4.PluginSettingTab {
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Voice Writing Settings" });
-    new import_obsidian4.Setting(containerEl).setName("Service Provider").setDesc("Choose between OpenAI (Best quality) or Groq (Fastest)").addDropdown((drop) => drop.addOption("openai", "OpenAI").addOption("groq", "Groq").setValue(this.plugin.settings.serviceProvider).onChange(async (value) => {
-      this.plugin.settings.serviceProvider = value;
-      await this.plugin.saveSettings();
-      this.display();
-    }));
-    containerEl.createEl("h3", { text: "API Keys" });
-    const openaiGuide = containerEl.createDiv({ cls: "setting-item-description api-guide" });
-    openaiGuide.innerHTML = `
-			<strong>How to get OpenAI API Key:</strong><br>
-			1. Go to <a href="https://platform.openai.com/api-keys">platform.openai.com/api-keys</a><br>
-			2. Sign up or log in<br>
-			3. Click "Create new secret key"<br>
-			4. Copy the key (starts with <code>sk-</code>)
-		`;
-    new import_obsidian4.Setting(containerEl).setName("OpenAI API Key").setDesc("Whisper model - High quality transcription").addText((text) => text.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (value) => {
-      this.plugin.settings.openaiApiKey = value;
-      await this.plugin.saveSettings();
-    })).addButton((button) => button.setButtonText("Test").setCta().onClick(async () => {
-      button.setButtonText("Testing...");
-      button.setDisabled(true);
-      const result = await this.plugin.transcriptionService.testApiKey(
-        this.plugin.settings.openaiApiKey,
-        "openai"
-      );
-      new import_obsidian4.Notice(result.message, result.success ? 3e3 : 5e3);
-      if (result.details) {
-        console.log("OpenAI API Test Details:", result.details);
-      }
-      button.setButtonText("Test");
-      button.setDisabled(false);
-    }));
-    const groqGuide = containerEl.createDiv({ cls: "setting-item-description api-guide" });
-    groqGuide.innerHTML = `
-			<strong>How to get Groq API Key (Recommended - FREE!):</strong><br>
-			1. Go to <a href="https://console.groq.com/keys">console.groq.com/keys</a><br>
-			2. Sign up with Google/GitHub<br>
-			3. Click "Create API Key"<br>
-			4. Copy the key (starts with <code>gsk_</code>)<br>
-			<em>Groq is free and extremely fast!</em>
-		`;
-    new import_obsidian4.Setting(containerEl).setName("Groq API Key").setDesc("Whisper Large V3 - Extremely fast transcription (FREE)").addText((text) => text.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (value) => {
-      this.plugin.settings.groqApiKey = value;
-      await this.plugin.saveSettings();
-    })).addButton((button) => button.setButtonText("Test").setCta().onClick(async () => {
-      button.setButtonText("Testing...");
-      button.setDisabled(true);
-      const result = await this.plugin.transcriptionService.testApiKey(
-        this.plugin.settings.groqApiKey,
-        "groq"
-      );
-      new import_obsidian4.Notice(result.message, result.success ? 3e3 : 5e3);
-      if (result.details) {
-        console.log("Groq API Test Details:", result.details);
-      }
-      button.setButtonText("Test");
-      button.setDisabled(false);
-    }));
-    containerEl.createEl("h3", { text: "Transcription Options" });
-    new import_obsidian4.Setting(containerEl).setName(DIARIZATION_NOTE.LABEL).setDesc(DIARIZATION_NOTE.INFO).addToggle((toggle) => toggle.setValue(this.plugin.settings.enableSpeakerDiarization).onChange(async (value) => {
-      this.plugin.settings.enableSpeakerDiarization = value;
+    containerEl.createEl("h2", { text: "\u{1F4D6} Devotional Voice Settings" });
+    containerEl.createEl("h3", { text: "\u{1F3A4} \uC74C\uC131 \uC778\uC2DD (STT)" });
+    new import_obsidian5.Setting(containerEl).setName("Service Provider").setDesc("OpenAI \uB610\uB294 Groq").addDropdown((d) => d.addOption("openai", "OpenAI").addOption("groq", "Groq").setValue(this.plugin.settings.serviceProvider).onChange(async (v) => {
+      this.plugin.settings.serviceProvider = v;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian4.Setting(containerEl).setName("Default Language").setDesc('Language code for transcription (e.g., en, ko, ja). Use "auto" for auto-detection.').addDropdown((drop) => {
-      const langs = [
-        { code: "auto", name: "Auto Detect" },
-        { code: "en", name: "English" },
-        { code: "ko", name: "Korean" },
-        { code: "ja", name: "Japanese" }
-      ];
-      langs.forEach((lang) => {
-        drop.addOption(lang.code, lang.name);
-      });
-      drop.setValue(this.plugin.settings.language).onChange(async (value) => {
-        this.plugin.settings.language = value;
+    new import_obsidian5.Setting(containerEl).setName("OpenAI API Key").addText((t) => t.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (v) => {
+      this.plugin.settings.openaiApiKey = v;
+      await this.plugin.saveSettings();
+    }));
+    new import_obsidian5.Setting(containerEl).setName("Groq API Key").addText((t) => t.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (v) => {
+      this.plugin.settings.groqApiKey = v;
+      await this.plugin.saveSettings();
+    }));
+    containerEl.createEl("h3", { text: "\u{1F50D} RAG \uAC80\uC0C9" });
+    new import_obsidian5.Setting(containerEl).setName("\uD654\uC774\uD2B8\uB9AC\uC2A4\uD2B8 \uD3F4\uB354").addText((t) => t.setPlaceholder("\uBB35\uC0C1\uC77C\uC9C0/").setValue(this.plugin.settings.whitelistFolders).onChange(async (v) => {
+      this.plugin.settings.whitelistFolders = v;
+      await this.plugin.saveSettings();
+    }));
+    new import_obsidian5.Setting(containerEl).setName("\uCD5C\uB300 \uAC80\uC0C9 \uACB0\uACFC").addSlider((s) => s.setLimits(1, 10, 1).setValue(this.plugin.settings.ragMaxResults).setDynamicTooltip().onChange(async (v) => {
+      this.plugin.settings.ragMaxResults = v;
+      await this.plugin.saveSettings();
+    }));
+    containerEl.createEl("h3", { text: "\u2728 \uBB35\uC0C1\uAE00 \uC0DD\uC131" });
+    new import_obsidian5.Setting(containerEl).setName("Gemini API Key").setDesc("aistudio.google.com \uC5D0\uC11C \uBC1C\uAE09").addText((t) => t.setPlaceholder("AIza...").setValue(this.plugin.settings.geminiApiKey).onChange(async (v) => {
+      this.plugin.settings.geminiApiKey = v;
+      await this.plugin.saveSettings();
+    }));
+    new import_obsidian5.Setting(containerEl).setName("Gemini Model (\uC0DD\uC131)").addText((t) => t.setPlaceholder("gemini-2.0-flash").setValue(this.plugin.settings.geminiModel).onChange(async (v) => {
+      this.plugin.settings.geminiModel = v;
+      await this.plugin.saveSettings();
+    }));
+    const defaultPromptHint = '\uB2F9\uC2E0\uC740 \uD0C1\uC6D4\uD55C \uC601\uC131\uC744 \uC9C0\uB2CC \uC2E0\uD559\uC790\uC774\uC790, \uCCAD\uC911\uC758 \uB9C8\uC74C\uC744 \uC704\uB85C\uD558\uB294 \uC124\uAD50\uC790\uC785\uB2C8\uB2E4.\n\uC0AC\uC6A9\uC790\uC758 \uBB35\uC0C1 \uB0B4\uC6A9\uACFC \uAD00\uB828 \uB178\uD2B8\uB97C \uBC14\uD0D5\uC73C\uB85C, \uAE4A\uC774 \uC788\uB294 \uC2E0\uD559\uC801 \uD1B5\uCC30\uACFC \uB530\uB73B\uD55C \uBAA9\uD68C\uC801 \uC801\uC6A9\uC774 \uB2F4\uAE34 \uBB35\uC0C1\uAE00\uC744 \uC791\uC131\uD574 \uC8FC\uC138\uC694.\n\uBC18\uB4DC\uC2DC JSON \uD615\uC2DD({"markdown":"...", "ttsScript":"..."})\uC73C\uB85C \uCD9C\uB825.\n\n\uC5B8\uC5B4: \uD55C\uAD6D\uC5B4';
+    new import_obsidian5.Setting(containerEl).setName("Prompt Template").setDesc("\uBE44\uC6CC\uB450\uBA74 \uAE30\uBCF8 \uD15C\uD50C\uB9BF \uC0AC\uC6A9. \uC218\uC815 \uC2DC JSON \uCD9C\uB825 \uD615\uC2DD \uC720\uC9C0 \uD544\uC694.").addTextArea((t) => {
+      t.inputEl.rows = 8;
+      t.inputEl.cols = 50;
+      t.setPlaceholder(defaultPromptHint).setValue(this.plugin.settings.devotionalTemplate).onChange(async (v) => {
+        this.plugin.settings.devotionalTemplate = v;
         await this.plugin.saveSettings();
       });
     });
+    containerEl.createEl("h3", { text: "\u{1F50A} TTS \uC124\uC815" });
+    new import_obsidian5.Setting(containerEl).setName("TTS \uD65C\uC131\uD654").addToggle((t) => t.setValue(this.plugin.settings.ttsEnabled).onChange(async (v) => {
+      this.plugin.settings.ttsEnabled = v;
+      await this.plugin.saveSettings();
+    }));
+    new import_obsidian5.Setting(containerEl).setName("TTS \uC81C\uACF5\uC790").addDropdown((d) => d.addOption("google", "Web Speech (\uBB34\uB8CC)").addOption("openai", "OpenAI TTS").addOption("gemini", "Gemini TTS").setValue(this.plugin.settings.ttsProvider).onChange(async (v) => {
+      this.plugin.settings.ttsProvider = v;
+      await this.plugin.saveSettings();
+      this.display();
+    }));
+    if (this.plugin.settings.ttsProvider === "openai") {
+      new import_obsidian5.Setting(containerEl).setName("OpenAI Voice").addDropdown((d) => d.addOption("alloy", "Alloy").addOption("echo", "Echo").addOption("nova", "Nova").addOption("shimmer", "Shimmer").setValue(this.plugin.settings.ttsOpenAiVoice).onChange(async (v) => {
+        this.plugin.settings.ttsOpenAiVoice = v;
+        await this.plugin.saveSettings();
+      }));
+    } else if (this.plugin.settings.ttsProvider === "gemini") {
+      new import_obsidian5.Setting(containerEl).setName("Gemini TTS Model").addText((t) => t.setPlaceholder("gemini-2.5-flash-preview-tts").setValue(this.plugin.settings.ttsGeminiModel).onChange(async (v) => {
+        this.plugin.settings.ttsGeminiModel = v;
+        await this.plugin.saveSettings();
+      }));
+      new import_obsidian5.Setting(containerEl).setName("Gemini Voice").setDesc("30\uAC00\uC9C0 \uC911 \uC8FC\uC694 15\uAC00\uC9C0").addDropdown((d) => d.addOption("Puck", "Puck (Upbeat)").addOption("Charon", "Charon (Informative)").addOption("Kore", "Kore (Firm, \uC5EC\uC131)").addOption("Fenrir", "Fenrir (Excitable, \uB0A8\uC131)").addOption("Aoede", "Aoede (Breezy)").addOption("Zephyr", "Zephyr (Bright)").addOption("Leda", "Leda (Youthful)").addOption("Orus", "Orus (Firm)").addOption("Callirrhoe", "Callirrhoe (Easy-going)").addOption("Autonoe", "Autonoe (Bright)").addOption("Enceladus", "Enceladus (Breathy)").addOption("Iapetus", "Iapetus (Clear)").addOption("Umbriel", "Umbriel (Easy-going)").addOption("Algieba", "Algieba (Smooth)").addOption("Despina", "Despina (Smooth)").setValue(this.plugin.settings.ttsGeminiVoice).onChange(async (v) => {
+        this.plugin.settings.ttsGeminiVoice = v;
+        await this.plugin.saveSettings();
+      }));
+    } else {
+      new import_obsidian5.Setting(containerEl).setName("TTS \uC5B8\uC5B4").addDropdown((d) => d.addOption("ko-KR", "\uD55C\uAD6D\uC5B4").addOption("en-US", "English").setValue(this.plugin.settings.ttsLanguage).onChange(async (v) => {
+        this.plugin.settings.ttsLanguage = v;
+        await this.plugin.saveSettings();
+      }));
+    }
   }
 };
