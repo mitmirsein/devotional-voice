@@ -63,7 +63,7 @@
 | 설정 | 설명 |
 |---|---|
 | Gemini API Key | [aistudio.google.com](https://aistudio.google.com)에서 발급 **(필수)** |
-| Gemini Model | 기본: `gemini-2.0-flash` |
+| Gemini Model | 기본: `gemini-2.5-flash` |
 | Prompt Template | 묵상글 생성 프롬프트 커스터마이징 (빈칸 시 기본 템플릿) |
 
 ### 🔊 TTS 설정
