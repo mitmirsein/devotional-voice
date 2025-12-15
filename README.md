@@ -136,7 +136,3 @@ MIT License
 ## 🙏 감사의 말
 
 이 플러그인은 [reallygood83/voice-writing](https://github.com/reallygood83/voice-writing)에서 영감을 받아 제작되었습니다. 훌륭한 오픈소스 프로젝트에 감사드립니다.
-
----
-
-Made with ❤️ for the glory of God.
