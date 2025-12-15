@@ -835,7 +835,7 @@ var DEFAULT_SETTINGS = {
   whitelistFolders: "",
   ragMaxResults: 5,
   geminiApiKey: "",
-  geminiModel: "gemini-2.0-flash",
+  geminiModel: "gemini-2.5-flash",
   devotionalTemplate: "",
   ttsEnabled: true,
   ttsProvider: "gemini",

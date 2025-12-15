@@ -46,6 +46,13 @@
 | OpenAI API Key | OpenAI STT 사용 시 필요 |
 | Groq API Key | [console.groq.com/keys](https://console.groq.com/keys)에서 무료 발급 |
 
+**Groq API Key 발급 방법:**
+1. [console.groq.com](https://console.groq.com/) 접속
+2. Google 또는 GitHub 계정으로 로그인
+3. 좌측 메뉴 → **API Keys** 클릭
+4. **Create API Key** 클릭 → 키 이름 입력 후 생성
+5. 생성된 `gsk_...` 형식의 키를 복사하여 설정에 입력
+
 ### 🔍 RAG 검색
 | 설정 | 설명 |
 |---|---|
@@ -99,7 +106,7 @@
 
 | 항목 | 비용 |
 |---|---|
-| 묵상글 1회 생성 (gemini-2.0-flash) | ~$0.001 (약 1~2원) |
+| 묵상글 1회 생성 (gemini-2.5-flash) | ~$0.001 (약 1~2원) |
 | TTS 오디오 생성 (gemini-2.5-flash-preview-tts) | **무료** (Preview 기간) |
 | Groq STT | **무료** |
 
