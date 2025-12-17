@@ -399,13 +399,24 @@ var RAGService = class {
     const lowerContent = content.toLowerCase();
     let score = 0;
     for (const keyword of keywords) {
-      const regex = new RegExp(keyword, "gi");
-      const matches = lowerContent.match(regex);
-      if (matches) {
-        score += matches.length;
+      const escapedKeyword = this.escapeRegExp(keyword);
+      try {
+        const regex = new RegExp(escapedKeyword, "gi");
+        const matches = lowerContent.match(regex);
+        if (matches) {
+          score += matches.length;
+        }
+      } catch (e) {
+        console.warn(`[RAG] Skipping invalid keyword: ${keyword}`);
       }
     }
     return score;
+  }
+  /**
+   * Escape special characters for use in RegExp
+   */
+  escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
   /**
    * Extract relevant excerpt from content

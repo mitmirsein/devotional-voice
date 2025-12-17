@@ -95,15 +95,28 @@ export class RAGService {
         let score = 0;
 
         for (const keyword of keywords) {
-            // Count occurrences
-            const regex = new RegExp(keyword, 'gi');
-            const matches = lowerContent.match(regex);
-            if (matches) {
-                score += matches.length;
+            // Escape special regex characters to prevent errors
+            const escapedKeyword = this.escapeRegExp(keyword);
+            try {
+                const regex = new RegExp(escapedKeyword, 'gi');
+                const matches = lowerContent.match(regex);
+                if (matches) {
+                    score += matches.length;
+                }
+            } catch (e) {
+                // Skip invalid regex patterns
+                console.warn(`[RAG] Skipping invalid keyword: ${keyword}`);
             }
         }
 
         return score;
+    }
+
+    /**
+     * Escape special characters for use in RegExp
+     */
+    private escapeRegExp(string: string): string {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     /**
