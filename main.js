@@ -480,7 +480,10 @@ var GenerationService = class {
     const context = this.buildContext(ragResults);
     const prompt = this.buildPrompt(userInput, context);
     const response = await this.callGemini(prompt);
-    return this.parseResponse(response);
+    console.log("[DevotionalVoice] Gemini raw response:", response.substring(0, 500));
+    const result = this.parseResponse(response);
+    console.log("[DevotionalVoice] Parsed result:", { markdownLength: result.markdown.length, ttsLength: result.ttsScript.length });
+    return result;
   }
   /**
    * Build context from RAG search results
@@ -1014,7 +1017,9 @@ var DevotionalVoicePlugin = class extends import_obsidian5.Plugin {
       const result = await this.generationService.generate(userInput, ragResults);
       console.log("[DevotionalVoice] Generation complete.");
       const { markdown: devotionalText, ttsScript } = result;
+      console.log("[DevotionalVoice] devotionalText length:", devotionalText.length);
       const activeView = this.app.workspace.getActiveViewOfType(import_obsidian5.MarkdownView);
+      console.log("[DevotionalVoice] activeView:", activeView ? "found" : "null");
       if (activeView) {
         const timestamp = new Date().toLocaleString("ko-KR");
         let referenceSection = "";

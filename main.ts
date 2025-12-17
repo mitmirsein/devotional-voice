@@ -209,9 +209,11 @@ export default class DevotionalVoicePlugin extends Plugin {
 			console.log('[DevotionalVoice] Generation complete.');
 
 			const { markdown: devotionalText, ttsScript } = result;
+			console.log('[DevotionalVoice] devotionalText length:', devotionalText.length);
 
 			// Insert into note
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			console.log('[DevotionalVoice] activeView:', activeView ? 'found' : 'null');
 			if (activeView) {
 				const timestamp = new Date().toLocaleString('ko-KR');
 				let referenceSection = '';

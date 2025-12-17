@@ -65,8 +65,11 @@ export class GenerationService {
 
         // Call Gemini API
         const response = await this.callGemini(prompt);
+        console.log('[DevotionalVoice] Gemini raw response:', response.substring(0, 500));
 
-        return this.parseResponse(response);
+        const result = this.parseResponse(response);
+        console.log('[DevotionalVoice] Parsed result:', { markdownLength: result.markdown.length, ttsLength: result.ttsScript.length });
+        return result;
     }
 
     /**
