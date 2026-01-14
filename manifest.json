@@ -1,0 +1,10 @@
+{
+	"id": "devotional-voice",
+	"name": "Devotional Voice",
+	"version": "0.1.0",
+	"minAppVersion": "0.15.0",
+	"description": "AI-powered Bible meditation with voice input, RAG-enhanced generation, and TTS output",
+	"author": "Kerygma Press",
+	"authorUrl": "https://kerygma.co.kr",
+	"isDesktopOnly": false
+}

@@ -1,0 +1,33 @@
+{
+  "name": "obsidian-devotional-voice",
+  "version": "0.1.0",
+  "description": "Devotional Voice Plugin for Obsidian - AI-powered Bible meditation with voice input and TTS output",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "obsidian",
+    "plugin",
+    "voice",
+    "devotional",
+    "bible",
+    "meditation",
+    "rag",
+    "tts"
+  ],
+  "author": "Kerygma Press",
+  "license": "AGPL-3.0",
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "@typescript-eslint/eslint-plugin": "5.29.0",
+    "@typescript-eslint/parser": "5.29.0",
+    "builtin-modules": "3.3.0",
+    "esbuild": "0.17.3",
+    "obsidian": "latest",
+    "tslib": "2.4.0",
+    "typescript": "4.7.4"
+  }
+}
