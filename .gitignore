@@ -3,6 +3,7 @@ main.js
 
 # Dependencies
 node_modules.nosync/
+node_modules/
 
 # IDE
 .vscode/
