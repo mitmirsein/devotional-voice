@@ -1434,7 +1434,9 @@ var DevotionalVoiceSettingTab = class extends import_obsidian6.PluginSettingTab 
       await this.plugin.saveSettings();
     }));
     containerEl.createEl("h3", { text: "\u2728 \uBB35\uC0C1\uAE00 \uC0DD\uC131" });
-    new import_obsidian6.Setting(containerEl).setName("Gemini API Key").setDesc("aistudio.google.com \uC5D0\uC11C \uBC1C\uAE09").addText((t) => t.setPlaceholder("AIza...").setValue(this.plugin.settings.geminiApiKey).onChange(async (v) => {
+    new import_obsidian6.Setting(containerEl).setName("Gemini API Key").setDesc(document.createDocumentFragment()).then((s) => {
+      s.descEl.createEl("a", { href: "https://aistudio.google.com/app/apikey", text: "Get API Key (Google AI Studio)", cls: "u-popover" });
+    }).addText((t) => t.setPlaceholder("AIza...").setValue(this.plugin.settings.geminiApiKey).onChange(async (v) => {
       this.plugin.settings.geminiApiKey = v;
       await this.plugin.saveSettings();
     }));

@@ -478,7 +478,12 @@ class DevotionalVoiceSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName('최대 검색 결과').addSlider(s => s.setLimits(1, 10, 1).setValue(this.plugin.settings.ragMaxResults).setDynamicTooltip().onChange(async v => { this.plugin.settings.ragMaxResults = v; await this.plugin.saveSettings(); }));
 
 		containerEl.createEl('h3', { text: '✨ 묵상글 생성' });
-		new Setting(containerEl).setName('Gemini API Key').setDesc('aistudio.google.com 에서 발급').addText(t => t.setPlaceholder('AIza...').setValue(this.plugin.settings.geminiApiKey).onChange(async v => { this.plugin.settings.geminiApiKey = v; await this.plugin.saveSettings(); }));
+		new Setting(containerEl).setName('Gemini API Key')
+			.setDesc(document.createDocumentFragment())
+			.then(s => {
+				s.descEl.createEl('a', { href: 'https://aistudio.google.com/app/apikey', text: 'Get API Key (Google AI Studio)', cls: 'u-popover' });
+			})
+			.addText(t => t.setPlaceholder('AIza...').setValue(this.plugin.settings.geminiApiKey).onChange(async v => { this.plugin.settings.geminiApiKey = v; await this.plugin.saveSettings(); }));
 		new Setting(containerEl).setName('Gemini Model (생성)').addText(t => t.setPlaceholder('gemini-2.0-flash').setValue(this.plugin.settings.geminiModel).onChange(async v => { this.plugin.settings.geminiModel = v; await this.plugin.saveSettings(); }));
 		
 		// --- Multi-Template Manager Start ---
