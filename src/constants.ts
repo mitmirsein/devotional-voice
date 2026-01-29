@@ -26,7 +26,7 @@ export const API_TEST_ENDPOINTS: Record<ServiceProvider, string> = {
 
 // API Request Configuration
 export const API_CONFIG = {
-    TIMEOUT_MS: 30000, // 30 seconds
+    TIMEOUT_MS: 300000, // 5 minutes (increased for long recordings)
     MAX_FILE_SIZE_MB: 25,
     AUDIO_MIME_TYPE: 'audio/webm'
 } as const;

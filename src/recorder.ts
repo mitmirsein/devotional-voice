@@ -54,6 +54,10 @@ export class MicrophoneRecorder {
         return this.mediaRecorder?.state === "recording";
     }
 
+    getStream(): MediaStream | null {
+        return this.mediaRecorder?.stream || null;
+    }
+
     /**
      * Parse media device errors and provide user-friendly messages
      */

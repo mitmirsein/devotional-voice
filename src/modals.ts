@@ -1,4 +1,5 @@
 import { App, Modal, Setting, TFile } from 'obsidian';
+import { MicrophoneRecorder } from './recorder';
 import {
     ServiceProvider,
     SUPPORTED_LANGUAGES,
@@ -16,9 +17,16 @@ export class RecordingModal extends Modal {
     private startTime: number;
     private timerInterval: number;
     private onStop: () => void;
+    private recorder: MicrophoneRecorder;
+    private audioContext: AudioContext;
+    private analyser: AnalyserNode;
+    private dataArray: Uint8Array;
+    private animationId: number;
+    private canvasCtx: CanvasRenderingContext2D;
 
-    constructor(app: App, onStop: () => void) {
+    constructor(app: App, recorder: MicrophoneRecorder, onStop: () => void) {
         super(app);
+        this.recorder = recorder;
         this.onStop = onStop;
     }
 
@@ -30,10 +38,25 @@ export class RecordingModal extends Modal {
         // Main Container clearly indicating recording state
         const container = contentEl.createDiv({ cls: 'recording-container' });
         
-        // Icon with pulse animation
-        const iconWrapper = container.createDiv({ cls: 'recording-icon-wrapper' });
-        iconWrapper.createDiv({ cls: 'recording-pulse-ring' });
-        iconWrapper.createEl('span', { text: '', cls: 'recording-icon mic-icon' });
+        // --- Visualizer Start ---
+        const canvas = container.createEl('canvas', { cls: 'recording-visualizer' });
+        canvas.width = 300;
+        canvas.height = 100;
+        this.canvasCtx = canvas.getContext('2d')!;
+        
+        // Init Audio Context for Visualization
+        const stream = this.recorder.getStream();
+        if (stream) {
+            this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const source = this.audioContext.createMediaStreamSource(stream);
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 256;
+            source.connect(this.analyser);
+            this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+            
+            this.drawVisualizer();
+        }
+        // --- Visualizer End ---
 
         // Text
         container.createEl('h2', { text: 'Recording in Progress...' });
@@ -53,9 +76,38 @@ export class RecordingModal extends Modal {
             this.onStop();
             this.close();
         };
+    }
 
-        // Click outside to close (optional, but better to keep it focused)
-        // this.modalEl.addClass('modal-persistent'); // If we want to prevent closing by clicking background
+    drawVisualizer() {
+        if (!this.analyser) return;
+
+        this.animationId = requestAnimationFrame(() => this.drawVisualizer());
+        this.analyser.getByteFrequencyData(this.dataArray);
+
+        const canvas = this.canvasCtx.canvas;
+        const width = canvas.width;
+        const height = canvas.height;
+        const ctx = this.canvasCtx;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const barWidth = (width / this.dataArray.length) * 2.5;
+        let barHeight;
+        let x = 0;
+
+        for (let i = 0; i < this.dataArray.length; i++) {
+            barHeight = this.dataArray[i] / 2;
+            
+            // Dynamic Color based on volume
+            const r = barHeight + 25 * (i / this.dataArray.length);
+            const g = 250 * (i / this.dataArray.length);
+            const b = 50;
+
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+
+            x += barWidth + 1;
+        }
     }
 
     updateTimer() {
@@ -68,11 +120,18 @@ export class RecordingModal extends Modal {
 
     onClose() {
         if (this.timerInterval) clearInterval(this.timerInterval);
+        if (this.animationId) cancelAnimationFrame(this.animationId);
+        if (this.audioContext) {
+            this.audioContext.close();
+        }
         this.contentEl.empty();
     }
 }
 
 export class ProcessingModal extends Modal {
+    private contentContainer: HTMLElement;
+    private streamingTextEl: HTMLElement;
+
     constructor(app: App) {
         super(app);
     }
@@ -84,14 +143,28 @@ export class ProcessingModal extends Modal {
 
         const container = contentEl.createDiv({ cls: 'processing-container' });
 
-        // Improved Spinner
-        const spinner = container.createDiv({ cls: 'voice-writing-spinner' });
-        spinner.createDiv({ cls: 'double-bounce1' });
-        spinner.createDiv({ cls: 'double-bounce2' });
+        container.createEl('h2', { text: '✨ Generating Devotional...' });
+        
+        // Scrollable content area
+        this.contentContainer = container.createDiv({ cls: 'streaming-content-container' });
+        this.contentContainer.style.maxHeight = '400px';
+        this.contentContainer.style.overflowY = 'auto';
+        this.contentContainer.style.padding = '10px';
+        this.contentContainer.style.backgroundColor = 'var(--background-secondary)';
+        this.contentContainer.style.borderRadius = '5px';
+        this.contentContainer.style.whiteSpace = 'pre-wrap';
 
-        container.createEl('h2', { text: 'Transcribing...' });
-        container.createEl('p', { text: 'Sending audio to AI for text conversion.' });
-        container.createEl('small', { text: 'This usually takes a few seconds.', cls: 'processing-hint' });
+        this.streamingTextEl = this.contentContainer.createDiv({ cls: 'streaming-text' });
+        
+        const hint = container.createEl('small', { text: 'Streaming from Gemini...', cls: 'processing-hint' });
+    }
+
+    appendContent(text: string) {
+        if (this.streamingTextEl) {
+            this.streamingTextEl.setText(this.streamingTextEl.getText() + text);
+            // Auto scroll to bottom
+            this.contentContainer.scrollTop = this.contentContainer.scrollHeight;
+        }
     }
 
     onClose() {

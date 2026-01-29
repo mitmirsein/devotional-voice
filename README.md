@@ -1,16 +1,16 @@
-# 📖 Devotional Voice Plugin for Obsidian
+# 📖 Devotional Voice Plugin for Obsidian v2
 
-음성, 텍스트, 또는 노트 전체를 입력으로 받아 **AI 기반 묵상글**을 생성하고, **TTS(Text-to-Speech)**로 낭독해주는 Obsidian 플러그인입니다.
+음성, 텍스트, 또는 노트 전체를 입력으로 받아 **AI 기반 묵상글**을 생성하고, **TTS(Text-to-Speech)**로 낭독해주는 Obsidian 플러그인입니다. v2 업데이트로 더욱 강력해졌습니다.
 
-## ✨ 주요 기능
+## ✨ 주요 기능 (v2 업데이트)
 
+- **✨ 스트리밍 생성 (New)**: 묵상글 생성 과정을 **실시간으로 타이핑하듯** 지켜볼 수 있습니다.
+- **� 지능형 RAG (New)**: 단순 키워드 매칭을 넘어, AI가 문맥을 파악하여 **연관 깊은 노트**를 찾아냅니다. (Query Expansion)
+- **🎨 비주얼 레코더 (New)**: 녹음 시 목소리의 파동을 **오디오 시각화(Waveform)**로 보여주어 녹음 상태를 직관적으로 확인합니다.
+- **� 다중 템플릿 (New)**: 설교, 묵상, 일기 등 용도에 따라 **여러 개의 프롬프트 템플릿**을 관리하고 상황에 맞춰 골라 쓸 수 있습니다.
+- **⏱️ 긴 녹음 지원**: 최대 5분의 API 대기 시간을 지원하여, 긴 호흡의 녹음도 안정적으로 처리합니다.
 - **🎤 음성 입력**: 마이크로 묵상 주제를 녹음하면 자동으로 텍스트 변환
-- **📝 텍스트 선택**: 노트에서 텍스트를 선택하여 묵상 생성
-- **📂 현재 노트**: 열려있는 노트 전체를 기반으로 묵상 생성
-- **🔍 RAG 검색**: 볼트 내 관련 노트를 자동 검색하여 맥락 강화
-- **✨ AI 묵상글 생성**: Gemini AI를 활용한 신학적 깊이의 묵상글
-- **🔊 TTS 낭독**: Gemini TTS로 자연스러운 음성 낭독
-- **💾 오디오 저장**: 생성된 TTS를 WAV 파일로 저장
+- **🔊 TTS 낭독**: Gemini TTS로 라디오 진행자 같은 자연스러운 음성 낭독
 
 ---
 
@@ -46,43 +46,38 @@
 | OpenAI API Key | OpenAI STT 사용 시 필요 |
 | Groq API Key | [console.groq.com/keys](https://console.groq.com/keys)에서 무료 발급 |
 
-**Groq API Key 발급 방법:**
-1. [console.groq.com](https://console.groq.com/) 접속
-2. Google 또는 GitHub 계정으로 로그인
-3. 좌측 메뉴 → **API Keys** 클릭
-4. **Create API Key** 클릭 → 키 이름 입력 후 생성
-5. 생성된 `gsk_...` 형식의 키를 복사하여 설정에 입력
-
-### 🔍 RAG 검색
+### 🔍 지능형 RAG 검색
 | 설정 | 설명 |
 |---|---|
 | 화이트리스트 폴더 | 검색 대상 폴더 (콤마 구분). 예: `묵상일지/, 성경연구/` |
 | 최대 검색 결과 | 참조할 노트 개수 (1~10) |
+| **Query Expansion** | Gemini API를 사용하여 검색어 확장 (설정된 Gemini Key 자동 사용) |
 
-### ✨ 묵상글 생성
+### ✨ 묵상글 생성 & 템플릿
 | 설정 | 설명 |
 |---|---|
 | Gemini API Key | [aistudio.google.com](https://aistudio.google.com)에서 발급 **(필수)** |
-| Gemini Model | 기본: `gemini-2.5-flash` |
-| Prompt Template | 묵상글 생성 프롬프트 커스터마이징 (빈칸 시 기본 템플릿) |
+| Gemini Model | `gemini-2.0-flash` 이상 권장 (스트리밍 지원) |
+| **Templates** | 다중 템플릿 관리자. `+` 버튼으로 추가, 드롭다운으로 활성 템플릿 선택 |
 
 ### 🔊 TTS 설정
 | 설정 | 설명 |
 |---|---|
 | TTS 활성화 | TTS 기능 ON/OFF |
-| TTS 제공자 | `Gemini TTS`, `OpenAI TTS`, `Web Speech (무료)` |
-| Gemini TTS Model | 기본: `gemini-2.5-flash-preview-tts` |
+| TTS 제공자 | `Gemini TTS`, `OpenAI TTS` |
 | Gemini Voice | 15가지 음성 선택 (Kore, Fenrir, Aoede 등) |
 
 ---
 
 ## 📚 사용법
 
-### 1. 묵상글 생성
+### 1. 묵상글 생성 (스트리밍)
 
 **방법 A: 리본 아이콘**
 - 좌측 리본의 📖 아이콘 클릭
 - 입력 방식 선택 (음성/텍스트 선택/현재 노트)
+- **녹음 시**: 파형이 움직이는 비주얼라이저를 보며 녹음.
+- **생성 시**: 실시간으로 생성되는 묵상글을 팝업창에서 확인. 완료 후 노트에 자동 삽입.
 
 **방법 B: 명령어 팔레트**
 - `Cmd/Ctrl + P` 후 아래 명령어 실행:
@@ -92,13 +87,12 @@
 
 ### 2. TTS 재생
 - `Cmd/Ctrl + P` → `Read Aloud: TTS 재생`
-- 노트에 생성된 `%%TTS-SCRIPT:...%%` 대본을 자동으로 읽습니다
-- 텍스트를 선택한 상태라면 선택된 부분만 읽습니다
+- 노트 하단에 숨겨진 `%%TTS-SCRIPT:...%%` 대본을 자동으로 읽습니다.
+- 라디오 DJ 스타일의 스크립트가 별도로 생성되어 더욱 자연스럽습니다.
 
 ### 3. 오디오 파일 저장
 - `Cmd/Ctrl + P` → `Save Audio: TTS 대본 오디오 저장`
-- 현재 노트와 같은 폴더에 `.wav` 파일로 저장
-- 저장 후 노트에 `![[파일명.wav]]`가 자동 삽입됩니다
+- 현재 노트와 같은 폴더에 `.wav` 파일로 저장되며 노트에 임베드됩니다.
 
 ---
 
@@ -106,9 +100,9 @@
 
 | 항목 | 비용 |
 |---|---|
-| 묵상글 1회 생성 (gemini-2.5-flash) | ~$0.001 (약 1~2원) |
-| TTS 오디오 생성 (gemini-2.5-flash-preview-tts) | **무료** (Preview 기간) |
-| Groq STT | **무료** |
+| 묵상글 1회 생성 (gemini-2.0-flash) | **매우 저렴** (거의 무료 수준) |
+| TTS 오디오 생성 (gemini) | **무료** (Google 정책에 따라 변동 가능) |
+| Groq STT | **무료** (현재 베타 기간) |
 
 ---
 

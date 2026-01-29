@@ -1,4 +1,4 @@
-import { App, TFile, Vault } from 'obsidian';
+import { App, TFile, Vault, requestUrl, Notice } from 'obsidian';
 
 export interface SearchResult {
     file: TFile;
@@ -9,6 +9,8 @@ export interface SearchResult {
 export interface RAGSettings {
     whitelistFolders: string[];
     maxResults: number;
+    geminiApiKey?: string;
+    geminiModel?: string;
 }
 
 /**
@@ -37,7 +39,21 @@ export class RAGService {
         );
 
         // Extract keywords from query
-        const keywords = this.extractKeywords(query);
+        let keywords = this.extractKeywords(query);
+        
+        // Phase 2: Query Expansion
+        if (this.settings.geminiApiKey && keywords.length > 0) {
+            try {
+                const expandedKeywords = await this.expandKeywordsWithLLM(query);
+                if (expandedKeywords.length > 0) {
+                    console.log('[RAG] Expanded Keywords:', expandedKeywords);
+                    // Merge and deduplicate
+                    keywords = [...new Set([...keywords, ...expandedKeywords])];
+                }
+            } catch (e) {
+                console.error('[RAG] Expansion failed, falling back to basic search:', e);
+            }
+        }
 
         for (const file of files) {
             const content = await vault.cachedRead(file);
@@ -145,5 +161,42 @@ export class RAGService {
      */
     updateSettings(settings: RAGSettings) {
         this.settings = settings;
+    }
+
+    /**
+     * Expand query using LLM to find theological synonyms and related concepts
+     */
+    private async expandKeywordsWithLLM(query: string): Promise<string[]> {
+        const model = this.settings.geminiModel || 'gemini-2.0-flash';
+        const apiKey = this.settings.geminiApiKey;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const prompt = `Analyze this devotional text and extract 5-8 related theological conceptual keywords (synonyms, biblical themes, key terms).
+        Text: "${query.substring(0, 500)}"
+        
+        Output only a comma-separated list of keywords. No explanations.
+        Example: Grace, Salvation, Cross, Redemption`;
+
+        try {
+            const response = await requestUrl({
+                url: apiUrl,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: { temperature: 0.3 }
+                })
+            });
+
+            if (response.status !== 200) return [];
+
+            const text = response.json?.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (!text) return [];
+
+            return text.split(',').map((k: string) => k.trim()).filter((k: string) => k.length > 0);
+        } catch (e) {
+            console.error('[RAG] LLM Expansion Error:', e);
+            return [];
+        }
     }
 }
