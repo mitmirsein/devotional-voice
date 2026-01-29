@@ -246,9 +246,11 @@ export default class DevotionalVoicePlugin extends Plugin {
 		const processingModal = new ProcessingModal(this.app);
 		processingModal.open();
 
+        let ragResults: SearchResult[] = [];
+
 		try {
 			new Notice('🔍 관련 노트 검색 중...');
-			const ragResults = await this.ragService.search(userInput, this.settings.ragMaxResults);
+			ragResults = await this.ragService.search(userInput, this.settings.ragMaxResults);
 			console.log(`[DevotionalVoice] RAG found ${ragResults.length} results.`);
 			
 			// Show RAG count in modal (hacky but works)
@@ -257,33 +259,11 @@ export default class DevotionalVoicePlugin extends Plugin {
 			new Notice('✨ 묵상글 생성 중 (Streaming)...');
 			
 			// Stream Generation
-			let result: any = null;
-			const generator = this.generationService.streamGenerate(userInput, ragResults);
-			
-			for await (const chunk of generator) {
-				processingModal.appendContent(chunk);
-			}
-			
-			// Get final return value from generator
-			// Note: The loop consumes values yielded. The return value is not "yielded".
-			// In TS/JS Iterators, obtaining the return value requires a bit different handling if using for-await-of loop directly.
-			// However, since my streamGenerate logic accumulates and returns the parsed result at the end, 
-			// and yields text chunks during process.
-			
-			// Actually, to get return value from generator in for-await-of is tricky.
-			// Simpler approach: Re-parse the full content from the modal or just use the generator's return.
-			// Let's modify logic: The generator yields chunks. I need to capture the Full Text to parse it at the end.
-			// Or calling `generator.next()` manually? No.
-			// Let's rely on the fact that I can re-construct the text or just ask `generationService` to expose a method to parse raw text.
-			// Actually, let's just capture full text in a variable.
-			
-			// But wait, my implementation of streamGenerate parses the result at the END and returns it.
-			// But `for await` loop discards the return value of the generator function.
-			// Better way: Re-implement loop or simple text accumulation here.
+			// Phase 1: Just validation (removed logic to avoid duping)
 		} catch (error) {
-			console.error('Streaming Error', error);
+			console.error('Initial Search Error', error);
 			processingModal.close();
-			new Notice('Error during generation');
+			new Notice('Error during search');
 			return;
 		}
 		
@@ -489,7 +469,6 @@ class DevotionalVoiceSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h3', { text: '✨ 묵상글 생성' });
 		new Setting(containerEl).setName('Gemini API Key').setDesc('aistudio.google.com 에서 발급').addText(t => t.setPlaceholder('AIza...').setValue(this.plugin.settings.geminiApiKey).onChange(async v => { this.plugin.settings.geminiApiKey = v; await this.plugin.saveSettings(); }));
-		new Setting(containerEl).setName('Gemini Model (생성)').addText(t => t.setPlaceholder('gemini-2.0-flash').setValue(this.plugin.settings.geminiModel).onChange(async v => { this.plugin.settings.geminiModel = v; await this.plugin.saveSettings(); }));
 		new Setting(containerEl).setName('Gemini Model (생성)').addText(t => t.setPlaceholder('gemini-2.0-flash').setValue(this.plugin.settings.geminiModel).onChange(async v => { this.plugin.settings.geminiModel = v; await this.plugin.saveSettings(); }));
 		
 		// --- Multi-Template Manager Start ---

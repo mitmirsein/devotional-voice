@@ -1438,10 +1438,6 @@ var DevotionalVoiceSettingTab = class extends import_obsidian6.PluginSettingTab 
       this.plugin.settings.geminiModel = v;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian6.Setting(containerEl).setName("Gemini Model (\uC0DD\uC131)").addText((t) => t.setPlaceholder("gemini-2.0-flash").setValue(this.plugin.settings.geminiModel).onChange(async (v) => {
-      this.plugin.settings.geminiModel = v;
-      await this.plugin.saveSettings();
-    }));
     containerEl.createEl("h4", { text: "\uD504\uB86C\uD504\uD2B8 \uD15C\uD50C\uB9BF \uAD00\uB9AC" });
     const templateSetting = new import_obsidian6.Setting(containerEl).setName("\uD65C\uC131 \uD15C\uD50C\uB9BF").setDesc("\uC0AC\uC6A9\uD560 \uD15C\uD50C\uB9BF\uC744 \uC120\uD0DD\uD558\uAC70\uB098 \uAD00\uB9AC\uD569\uB2C8\uB2E4.").addDropdown((d) => {
       this.plugin.settings.prompts.forEach((p, i) => d.addOption(i.toString(), p.name));
