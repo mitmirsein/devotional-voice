@@ -1412,11 +1412,15 @@ var DevotionalVoiceSettingTab = class extends import_obsidian6.PluginSettingTab 
       this.plugin.settings.serviceProvider = v;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian6.Setting(containerEl).setName("OpenAI API Key").addText((t) => t.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (v) => {
+    new import_obsidian6.Setting(containerEl).setName("OpenAI API Key").setDesc(document.createDocumentFragment()).then((s) => {
+      s.descEl.createEl("a", { href: "https://platform.openai.com/api-keys", text: "Get API Key", cls: "u-popover" });
+    }).addText((t) => t.setPlaceholder("sk-...").setValue(this.plugin.settings.openaiApiKey).onChange(async (v) => {
       this.plugin.settings.openaiApiKey = v;
       await this.plugin.saveSettings();
     }));
-    new import_obsidian6.Setting(containerEl).setName("Groq API Key").addText((t) => t.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (v) => {
+    new import_obsidian6.Setting(containerEl).setName("Groq API Key").setDesc(document.createDocumentFragment()).then((s) => {
+      s.descEl.createEl("a", { href: "https://console.groq.com/keys", text: "Get API Key", cls: "u-popover" });
+    }).addText((t) => t.setPlaceholder("gsk_...").setValue(this.plugin.settings.groqApiKey).onChange(async (v) => {
       this.plugin.settings.groqApiKey = v;
       await this.plugin.saveSettings();
     }));

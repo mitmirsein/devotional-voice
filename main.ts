@@ -460,8 +460,18 @@ class DevotionalVoiceSettingTab extends PluginSettingTab {
 
 		containerEl.createEl('h3', { text: '🎤 음성 인식 (STT)' });
 		new Setting(containerEl).setName('Service Provider').setDesc('OpenAI 또는 Groq').addDropdown(d => d.addOption('openai', 'OpenAI').addOption('groq', 'Groq').setValue(this.plugin.settings.serviceProvider).onChange(async v => { this.plugin.settings.serviceProvider = v as ServiceProvider; await this.plugin.saveSettings(); }));
-		new Setting(containerEl).setName('OpenAI API Key').addText(t => t.setPlaceholder('sk-...').setValue(this.plugin.settings.openaiApiKey).onChange(async v => { this.plugin.settings.openaiApiKey = v; await this.plugin.saveSettings(); }));
-		new Setting(containerEl).setName('Groq API Key').addText(t => t.setPlaceholder('gsk_...').setValue(this.plugin.settings.groqApiKey).onChange(async v => { this.plugin.settings.groqApiKey = v; await this.plugin.saveSettings(); }));
+		new Setting(containerEl).setName('OpenAI API Key')
+			.setDesc(document.createDocumentFragment())
+			.then(s => {
+				s.descEl.createEl('a', { href: 'https://platform.openai.com/api-keys', text: 'Get API Key', cls: 'u-popover' });
+			})
+			.addText(t => t.setPlaceholder('sk-...').setValue(this.plugin.settings.openaiApiKey).onChange(async v => { this.plugin.settings.openaiApiKey = v; await this.plugin.saveSettings(); }));
+		new Setting(containerEl).setName('Groq API Key')
+			.setDesc(document.createDocumentFragment())
+			.then(s => {
+				s.descEl.createEl('a', { href: 'https://console.groq.com/keys', text: 'Get API Key', cls: 'u-popover' });
+			})
+			.addText(t => t.setPlaceholder('gsk_...').setValue(this.plugin.settings.groqApiKey).onChange(async v => { this.plugin.settings.groqApiKey = v; await this.plugin.saveSettings(); }));
 
 		containerEl.createEl('h3', { text: '🔍 RAG 검색' });
 		new Setting(containerEl).setName('화이트리스트 폴더').addText(t => t.setPlaceholder('묵상일지/').setValue(this.plugin.settings.whitelistFolders).onChange(async v => { this.plugin.settings.whitelistFolders = v; await this.plugin.saveSettings(); }));
