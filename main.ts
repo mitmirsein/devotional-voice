@@ -149,26 +149,56 @@ export default class DevotionalVoicePlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on('editor-menu', (menu, editor, view) => {
 				const selection = editor.getSelection();
+				const content = editor.getValue();
+				const hasTtsScript = /%%TTS-SCRIPT:(.*?)%%/s.test(content);
+
+				menu.addSeparator();
 				
+				// 1. Voice
+				menu.addItem((item) => {
+					item
+						.setTitle('🎤 음성으로 묵상 시작')
+						.setIcon('microphone')
+						.onClick(async () => {
+							await this.startVoiceDevotional();
+						});
+				});
+
+				// 2. Selection (Always show or only show when selected? User requested order implies fixed)
 				if (selection && selection.trim().length > 0) {
 					menu.addItem((item) => {
 						item
-							.setTitle('📖 Devotional Voice: 선택 영역으로 묵상')
-							.setIcon('book-open')
+							.setTitle('📝 선택 텍스트로 묵상')
+							.setIcon('highlighter')
 							.onClick(async () => {
 								await this.startSelectionDevotional(editor);
 							});
 					});
-				} else {
+				}
+
+				// 3. Current Note
+				menu.addItem((item) => {
+					item
+						.setTitle('📂 현재 노트로 묵상 시작')
+						.setIcon('file-text')
+						.onClick(async () => {
+							await this.startNoteDevotional();
+						});
+				});
+
+				// 4. Save Audio (Only if script exists)
+				if (hasTtsScript) {
 					menu.addItem((item) => {
 						item
-							.setTitle('📖 Devotional Voice: 현재 노트로 묵상')
-							.setIcon('book-open')
+							.setTitle('💾 TTS 대본 오디오 저장')
+							.setIcon('save')
 							.onClick(async () => {
-								await this.startNoteDevotional();
+								await this.saveAudioToNote(editor);
 							});
 					});
 				}
+				
+				menu.addSeparator();
 			})
 		);
 

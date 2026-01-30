@@ -1156,19 +1156,34 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
         const selection = editor.getSelection();
+        const content = editor.getValue();
+        const hasTtsScript = /%%TTS-SCRIPT:(.*?)%%/s.test(content);
+        menu.addSeparator();
+        menu.addItem((item) => {
+          item.setTitle("\u{1F3A4} \uC74C\uC131\uC73C\uB85C \uBB35\uC0C1 \uC2DC\uC791").setIcon("microphone").onClick(async () => {
+            await this.startVoiceDevotional();
+          });
+        });
         if (selection && selection.trim().length > 0) {
           menu.addItem((item) => {
-            item.setTitle("\u{1F4D6} Devotional Voice: \uC120\uD0DD \uC601\uC5ED\uC73C\uB85C \uBB35\uC0C1").setIcon("book-open").onClick(async () => {
+            item.setTitle("\u{1F4DD} \uC120\uD0DD \uD14D\uC2A4\uD2B8\uB85C \uBB35\uC0C1").setIcon("highlighter").onClick(async () => {
               await this.startSelectionDevotional(editor);
             });
           });
-        } else {
+        }
+        menu.addItem((item) => {
+          item.setTitle("\u{1F4C2} \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1 \uC2DC\uC791").setIcon("file-text").onClick(async () => {
+            await this.startNoteDevotional();
+          });
+        });
+        if (hasTtsScript) {
           menu.addItem((item) => {
-            item.setTitle("\u{1F4D6} Devotional Voice: \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1").setIcon("book-open").onClick(async () => {
-              await this.startNoteDevotional();
+            item.setTitle("\u{1F4BE} TTS \uB300\uBCF8 \uC624\uB514\uC624 \uC800\uC7A5").setIcon("save").onClick(async () => {
+              await this.saveAudioToNote(editor);
             });
           });
         }
+        menu.addSeparator();
       })
     );
     console.log("[DevotionalVoice] Plugin loaded successfully.");
