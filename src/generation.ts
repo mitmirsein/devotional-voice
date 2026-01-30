@@ -222,7 +222,6 @@ ${context}
         let buffer = '';
         let accumulatedText = '';
         
-        console.log('[DevotionalVoice] Stream loop started');
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
