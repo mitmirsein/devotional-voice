@@ -497,9 +497,9 @@ var DEFAULT_TEMPLATE = `\uB2F9\uC2E0\uC740 \uD0C1\uC6D4\uD55C \uC601\uC131\uC744
 
 \uC0AC\uC6A9\uC790\uC758 \uBB35\uC0C1 \uB0B4\uC6A9\uACFC \uAD00\uB828 \uB178\uD2B8\uB97C \uBC14\uD0D5\uC73C\uB85C, \uAE4A\uC774 \uC788\uB294 \uC2E0\uD559\uC801 \uD1B5\uCC30\uACFC \uB530\uB73B\uD55C \uBAA9\uD68C\uC801 \uC801\uC6A9\uC774 \uB2F4\uAE34 \uBB35\uC0C1\uAE00\uC744 \uC791\uC131\uD574 \uC8FC\uC138\uC694.
 
-## \uCD9C\uB825 \uD615\uC2DD (\uC911\uC694)
+## \uCD9C\uB825 \uD615\uC2DD (\uC808\uB300 \uC900\uC218)
 1. \uBA3C\uC800 **\uBB35\uC0C1\uAE00 \uBCF8\uBB38(Markdown)**\uC744 \uC791\uC131\uD558\uC138\uC694.
-2. \uBCF8\uBB38\uC774 \uB05D\uB098\uBA74 \uBC18\uB4DC\uC2DC **\`|||TTS_SCRIPT_START|||\`** \uB77C\uB294 \uAD6C\uBD84\uC790\uB97C \uD55C \uC904\uC5D0 \uC791\uC131\uD558\uC138\uC694.
+2. \uBCF8\uBB38\uC774 \uB05D\uB098\uBA74 \uBC18\uB4DC\uC2DC **\`|||TTS_SCRIPT_START|||\`** \uB77C\uB294 \uAD6C\uBD84\uC790\uB97C \uD55C \uC904\uC5D0 \uC791\uC131\uD558\uC138\uC694. (JSON \uD615\uD0DC\uB098 \`\`\`json \uCF54\uB4DC \uBE14\uB85D\uC744 \uC808\uB300 \uC0AC\uC6A9\uD558\uC9C0 \uB9C8\uC138\uC694. \uC624\uC9C1 \uC77C\uBC18 \uBB38\uC7A5\uACFC \uAD6C\uBD84\uC790\uB9CC \uC0AC\uC6A9\uD558\uC138\uC694.)
 3. \uADF8 \uB4A4\uC5D0 **TTS \uB300\uBCF8**\uC744 \uC791\uC131\uD558\uC138\uC694.
 
 ## \uC791\uC131 \uC9C0\uCE68
@@ -1317,14 +1317,9 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
         fullText += chunk;
         processingModal.appendContent(chunk);
       }
-      let devotionalText = fullText;
-      let ttsScript = "";
-      const separator = "|||TTS_SCRIPT_START|||";
-      if (fullText.includes(separator)) {
-        const parts = fullText.split(separator);
-        devotionalText = parts[0].trim();
-        ttsScript = parts[1].trim();
-      }
+      const parsedResult = this.generationService.parseResponse(fullText);
+      const devotionalText = parsedResult.markdown;
+      const ttsScript = parsedResult.ttsScript;
       processingModal.close();
       const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
       if (activeView) {

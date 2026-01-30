@@ -325,16 +325,10 @@ export default class DevotionalVoicePlugin extends Plugin {
 				processingModal.appendContent(chunk);
 			}
 			
-			// Parse the accumulated text
-			let devotionalText = fullText;
-			let ttsScript = '';
-			const separator = '|||TTS_SCRIPT_START|||';
-			
-			if (fullText.includes(separator)) {
-				const parts = fullText.split(separator);
-				devotionalText = parts[0].trim();
-				ttsScript = parts[1].trim();
-			}
+			// Robust Parsing of accumulated text (handles separator and JSON fallback)
+			const parsedResult = this.generationService.parseResponse(fullText);
+			const devotionalText = parsedResult.markdown;
+			const ttsScript = parsedResult.ttsScript;
 
 			processingModal.close();
 

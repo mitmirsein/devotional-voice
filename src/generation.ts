@@ -11,9 +11,9 @@ const DEFAULT_TEMPLATE = `당신은 탁월한 영성을 지닌 신학자이자, 
 
 사용자의 묵상 내용과 관련 노트를 바탕으로, 깊이 있는 신학적 통찰과 따뜻한 목회적 적용이 담긴 묵상글을 작성해 주세요.
 
-## 출력 형식 (중요)
+## 출력 형식 (절대 준수)
 1. 먼저 **묵상글 본문(Markdown)**을 작성하세요.
-2. 본문이 끝나면 반드시 **\`|||TTS_SCRIPT_START|||\`** 라는 구분자를 한 줄에 작성하세요.
+2. 본문이 끝나면 반드시 **\`|||TTS_SCRIPT_START|||\`** 라는 구분자를 한 줄에 작성하세요. (JSON 형태나 \`\`\`json 코드 블록을 절대 사용하지 마세요. 오직 일반 문장과 구분자만 사용하세요.)
 3. 그 뒤에 **TTS 대본**을 작성하세요.
 
 ## 작성 지침
@@ -137,7 +137,7 @@ ${context}
         }
     }
 
-    private parseResponse(response: string): GenerationResult {
+    public parseResponse(response: string): GenerationResult {
         // Updated for Separator Strategy
         const separator = '|||TTS_SCRIPT_START|||';
         if (response.includes(separator)) {
