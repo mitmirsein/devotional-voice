@@ -143,6 +143,12 @@ export default class DevotionalVoicePlugin extends Plugin {
 			editorCallback: (editor: Editor) => this.saveAudioToNote(editor)
 		});
 
+		this.addCommand({
+			id: 'devotional-generate-tts-only',
+			name: 'Generate TTS Script: 현재 노트로부터 TTS 대본 생성',
+			callback: () => this.generateTtsScriptFromNote()
+		});
+
 		this.addSettingTab(new DevotionalVoiceSettingTab(this.app, this));
 
 		// Register Editor Context Menu (Right-Click)
@@ -183,6 +189,16 @@ export default class DevotionalVoicePlugin extends Plugin {
 						.setIcon('file-text')
 						.onClick(async () => {
 							await this.startNoteDevotional();
+						});
+				});
+
+				// 3-1. TTS Only from Note
+				menu.addItem((item) => {
+					item
+						.setTitle('🎙️ 현재 노트에서 TTS 대본만 생성')
+						.setIcon('speech')
+						.onClick(async () => {
+							await this.generateTtsScriptFromNote();
 						});
 				});
 
@@ -249,6 +265,7 @@ export default class DevotionalVoicePlugin extends Plugin {
 					else { new Notice('텍스트를 선택할 수 있는 노트를 열어주세요.'); }
 					break;
 				case 'note': this.startNoteDevotional(); break;
+				case 'tts_only': this.generateTtsScriptFromNote(); break;
 			}
 		}).open();
 	}
@@ -294,6 +311,51 @@ export default class DevotionalVoicePlugin extends Plugin {
 		const content = await this.app.vault.read(activeFile);
 		if (!content || content.trim().length === 0) { new Notice('노트가 비어있습니다.'); return; }
 		await this.processDevotional(content);
+	}
+
+	async generateTtsScriptFromNote() {
+		const activeFile = this.app.workspace.getActiveFile();
+		if (!activeFile) { new Notice('열린 노트가 없습니다.'); return; }
+		const content = await this.app.vault.read(activeFile);
+		if (!content || content.trim().length === 0) { new Notice('노트가 비어있습니다.'); return; }
+		
+		console.log('[DevotionalVoice] generateTtsScriptFromNote started.');
+		this.updateStatusBar('Generating TTS...');
+		
+		const processingModal = new ProcessingModal(this.app);
+		processingModal.open();
+		processingModal.appendContent(`### 🎙️ 현재 노트로부터 TTS 대본 생성 중...\n\n`);
+
+		try {
+			const generator = this.generationService.streamGenerateTts(content);
+			
+			let fullText = '';
+			for await (const chunk of generator) {
+				fullText += chunk;
+				processingModal.appendContent(chunk);
+			}
+			
+			processingModal.close();
+
+			// Insert into note
+			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+			if (activeView) {
+				const editor = activeView.editor;
+				const ttsBlock = `\n\n%%TTS-SCRIPT:${fullText.trim()}%%`;
+				
+				// Append to bottom
+				const lineCount = editor.lineCount();
+				editor.replaceRange(ttsBlock, { line: lineCount, ch: 0 });
+				
+				new Notice('✅ TTS 대본이 노트 하단에 기록되었습니다.');
+				this.updateStatusBar('Ready');
+			}
+		} catch (e) {
+			if (processingModal) try { processingModal.close(); } catch {}
+			console.error('[DevotionalVoice] TTS Generation Failed:', e);
+			new Notice('TTS 대본 생성 실패: ' + e.message);
+			this.updateStatusBar('Error');
+		}
 	}
 
 	private async processDevotional(userInput: string) {
@@ -474,20 +536,26 @@ export default class DevotionalVoicePlugin extends Plugin {
 }
 
 class InputModeModal extends Modal {
-	private onSelect: (mode: 'voice' | 'selection' | 'note') => void;
-	constructor(app: App, onSelect: (mode: 'voice' | 'selection' | 'note') => void) { super(app); this.onSelect = onSelect; }
+	private onSelect: (mode: 'voice' | 'selection' | 'note' | 'tts_only') => void;
+	constructor(app: App, onSelect: (mode: 'voice' | 'selection' | 'note' | 'tts_only') => void) { super(app); this.onSelect = onSelect; }
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass('devotional-input-modal');
 		contentEl.createEl('h2', { text: '📖 묵상 입력 방식 선택' });
 		const buttonContainer = contentEl.createDiv({ cls: 'input-mode-buttons' });
+		
 		const voiceBtn = buttonContainer.createEl('button', { text: '🎤 음성 녹음', cls: 'mod-cta' });
 		voiceBtn.onclick = () => { this.close(); this.onSelect('voice'); };
+		
 		const selectionBtn = buttonContainer.createEl('button', { text: '📝 텍스트 선택' });
 		selectionBtn.onclick = () => { this.close(); this.onSelect('selection'); };
-		const noteBtn = buttonContainer.createEl('button', { text: '📂 현재 노트' });
+		
+		const noteBtn = buttonContainer.createEl('button', { text: '📂 현재 노트로 묵상' });
 		noteBtn.onclick = () => { this.close(); this.onSelect('note'); };
+
+		const ttsOnlyBtn = buttonContainer.createEl('button', { text: '🎙️ TTS 대본만 생성' });
+		ttsOnlyBtn.onclick = () => { this.close(); this.onSelect('tts_only'); };
 	}
 	onClose() { this.contentEl.empty(); }
 }

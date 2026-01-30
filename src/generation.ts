@@ -171,6 +171,121 @@ ${context}
     }
 
     /**
+     * Build prompt for generating ONLY a TTS script
+     */
+    private buildTtsOnlyPrompt(noteContent: string): string {
+        return `당신은 탁월한 영성을 지닌 신학자이자, 청중의 마음을 위로하는 설교자입니다.
+사용자의 노트 내용을 바탕으로, 이를 낭독하기 적합한 '라디오 심야 방송' 톤의 TTS 대본을 작성해 주세요.
+
+## 작성 지침
+1. **어조**: 따뜻하고 차분하며, 듣는 이의 감정을 어루만지는 톤.
+2. **섹션 구분**: "안녕하세요", "오늘 우리에게 주신 말씀 혹은 나눔입니다" 등의 오프닝과 클로징 멘트 포함.
+3. **문체**: 부드러운 구어체. 이모지 제거.
+4. **내용**: 노트의 핵심 통찰을 하나도 빠뜨리지 않고 자연스럽게 연결하여 낭독문으로 변환.
+
+## 노트 내용
+\${noteContent}
+
+## 출력 형식
+별도의 도입부 없이 바로 TTS 대본만 작성해 주세요. (마크다운 제목 등은 생략하고 실제 읽을 내용만 작성)`;
+    }
+
+    /**
+     * Stream generate ONLY TTS Script using Fetch API
+     */
+    async *streamGenerateTts(
+        noteContent: string
+    ): AsyncGenerator<string, string, unknown> {
+        if (!this.settings.geminiApiKey) {
+            throw new Error('Gemini API key is not configured');
+        }
+
+        const prompt = this.buildTtsOnlyPrompt(noteContent);
+        console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: \${prompt.length} chars`);
+        
+        const model = this.settings.geminiModel || 'gemini-2.0-flash';
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/\${model}:streamGenerateContent?key=\${this.settings.geminiApiKey}`;
+
+        console.log(`[DevotionalVoice] Calling Gemini Stream API (\${model}) for TTS-only...`);
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.7,
+                        maxOutputTokens: 8192
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Gemini Stream API error: \${response.status}`);
+            }
+
+            if (!response.body) throw new Error('No response body');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            let buffer = '';
+            let accumulatedText = '';
+            
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                
+                buffer += decoder.decode(value, { stream: true });
+                
+                let loopAgain = true;
+                while(loopAgain) {
+                    loopAgain = false;
+                    const firstBrace = buffer.indexOf('{');
+                    if (firstBrace === -1) { break; }
+                    else if (firstBrace > 0) { buffer = buffer.substring(firstBrace); }
+
+                    let openBraces = 0;
+                    let inString = false;
+                    let escaped = false;
+                    for(let j=0; j<buffer.length; j++) {
+                        const c = buffer[j];
+                        if(escaped) { escaped=false; continue; }
+                        if(c==='\\\\') { escaped=true; continue; }
+                        if(c==='"') { inString=!inString; continue; }
+                        if(!inString) {
+                            if(c==='{') openBraces++;
+                            else if(c==='}') {
+                                openBraces--;
+                                if(openBraces === 0) {
+                                    const rawJson = buffer.substring(0, j+1);
+                                    try {
+                                        const p = JSON.parse(rawJson);
+                                        const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
+                                        if(txt) {
+                                            accumulatedText += txt;
+                                            yield txt;
+                                        }
+                                    } catch(e) {}
+                                    buffer = buffer.substring(j+1);
+                                    loopAgain = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return accumulatedText;
+            
+        } catch (error) {
+            console.error('Gemini Stream TTS Error:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Stream generate using Fetch API
      */
     async *streamGenerate(

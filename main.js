@@ -622,6 +622,121 @@ ${context}
     }
   }
   /**
+   * Build prompt for generating ONLY a TTS script
+   */
+  buildTtsOnlyPrompt(noteContent) {
+    return `\uB2F9\uC2E0\uC740 \uD0C1\uC6D4\uD55C \uC601\uC131\uC744 \uC9C0\uB2CC \uC2E0\uD559\uC790\uC774\uC790, \uCCAD\uC911\uC758 \uB9C8\uC74C\uC744 \uC704\uB85C\uD558\uB294 \uC124\uAD50\uC790\uC785\uB2C8\uB2E4.
+\uC0AC\uC6A9\uC790\uC758 \uB178\uD2B8 \uB0B4\uC6A9\uC744 \uBC14\uD0D5\uC73C\uB85C, \uC774\uB97C \uB0AD\uB3C5\uD558\uAE30 \uC801\uD569\uD55C '\uB77C\uB514\uC624 \uC2EC\uC57C \uBC29\uC1A1' \uD1A4\uC758 TTS \uB300\uBCF8\uC744 \uC791\uC131\uD574 \uC8FC\uC138\uC694.
+
+## \uC791\uC131 \uC9C0\uCE68
+1. **\uC5B4\uC870**: \uB530\uB73B\uD558\uACE0 \uCC28\uBD84\uD558\uBA70, \uB4E3\uB294 \uC774\uC758 \uAC10\uC815\uC744 \uC5B4\uB8E8\uB9CC\uC9C0\uB294 \uD1A4.
+2. **\uC139\uC158 \uAD6C\uBD84**: "\uC548\uB155\uD558\uC138\uC694", "\uC624\uB298 \uC6B0\uB9AC\uC5D0\uAC8C \uC8FC\uC2E0 \uB9D0\uC500 \uD639\uC740 \uB098\uB214\uC785\uB2C8\uB2E4" \uB4F1\uC758 \uC624\uD504\uB2DD\uACFC \uD074\uB85C\uC9D5 \uBA58\uD2B8 \uD3EC\uD568.
+3. **\uBB38\uCCB4**: \uBD80\uB4DC\uB7EC\uC6B4 \uAD6C\uC5B4\uCCB4. \uC774\uBAA8\uC9C0 \uC81C\uAC70.
+4. **\uB0B4\uC6A9**: \uB178\uD2B8\uC758 \uD575\uC2EC \uD1B5\uCC30\uC744 \uD558\uB098\uB3C4 \uBE60\uB728\uB9AC\uC9C0 \uC54A\uACE0 \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC5F0\uACB0\uD558\uC5EC \uB0AD\uB3C5\uBB38\uC73C\uB85C \uBCC0\uD658.
+
+## \uB178\uD2B8 \uB0B4\uC6A9
+\${noteContent}
+
+## \uCD9C\uB825 \uD615\uC2DD
+\uBCC4\uB3C4\uC758 \uB3C4\uC785\uBD80 \uC5C6\uC774 \uBC14\uB85C TTS \uB300\uBCF8\uB9CC \uC791\uC131\uD574 \uC8FC\uC138\uC694. (\uB9C8\uD06C\uB2E4\uC6B4 \uC81C\uBAA9 \uB4F1\uC740 \uC0DD\uB7B5\uD558\uACE0 \uC2E4\uC81C \uC77D\uC744 \uB0B4\uC6A9\uB9CC \uC791\uC131)`;
+  }
+  /**
+   * Stream generate ONLY TTS Script using Fetch API
+   */
+  async *streamGenerateTts(noteContent) {
+    var _a, _b, _c, _d, _e;
+    if (!this.settings.geminiApiKey) {
+      throw new Error("Gemini API key is not configured");
+    }
+    const prompt = this.buildTtsOnlyPrompt(noteContent);
+    console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: \${prompt.length} chars`);
+    const model = this.settings.geminiModel || "gemini-2.0-flash";
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/\${model}:streamGenerateContent?key=\${this.settings.geminiApiKey}`;
+    console.log(`[DevotionalVoice] Calling Gemini Stream API (\${model}) for TTS-only...`);
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192
+          }
+        })
+      });
+      if (!response.ok) {
+        throw new Error(`Gemini Stream API error: \${response.status}`);
+      }
+      if (!response.body)
+        throw new Error("No response body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulatedText = "";
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done)
+          break;
+        buffer += decoder.decode(value, { stream: true });
+        let loopAgain = true;
+        while (loopAgain) {
+          loopAgain = false;
+          const firstBrace = buffer.indexOf("{");
+          if (firstBrace === -1) {
+            break;
+          } else if (firstBrace > 0) {
+            buffer = buffer.substring(firstBrace);
+          }
+          let openBraces = 0;
+          let inString = false;
+          let escaped = false;
+          for (let j = 0; j < buffer.length; j++) {
+            const c = buffer[j];
+            if (escaped) {
+              escaped = false;
+              continue;
+            }
+            if (c === "\\\\") {
+              escaped = true;
+              continue;
+            }
+            if (c === '"') {
+              inString = !inString;
+              continue;
+            }
+            if (!inString) {
+              if (c === "{")
+                openBraces++;
+              else if (c === "}") {
+                openBraces--;
+                if (openBraces === 0) {
+                  const rawJson = buffer.substring(0, j + 1);
+                  try {
+                    const p = JSON.parse(rawJson);
+                    const txt = (_e = (_d = (_c = (_b = (_a = p.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text;
+                    if (txt) {
+                      accumulatedText += txt;
+                      yield txt;
+                    }
+                  } catch (e) {
+                  }
+                  buffer = buffer.substring(j + 1);
+                  loopAgain = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      return accumulatedText;
+    } catch (error) {
+      console.error("Gemini Stream TTS Error:", error);
+      throw error;
+    }
+  }
+  /**
    * Stream generate using Fetch API
    */
   async *streamGenerate(userInput, ragResults) {
@@ -1158,6 +1273,11 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       name: "Save Audio: TTS \uB300\uBCF8 \uC624\uB514\uC624 \uC800\uC7A5",
       editorCallback: (editor) => this.saveAudioToNote(editor)
     });
+    this.addCommand({
+      id: "devotional-generate-tts-only",
+      name: "Generate TTS Script: \uD604\uC7AC \uB178\uD2B8\uB85C\uBD80\uD130 TTS \uB300\uBCF8 \uC0DD\uC131",
+      callback: () => this.generateTtsScriptFromNote()
+    });
     this.addSettingTab(new DevotionalVoiceSettingTab(this.app, this));
     this.registerEvent(
       this.app.workspace.on("editor-menu", (menu, editor, view) => {
@@ -1180,6 +1300,11 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
         menu.addItem((item) => {
           item.setTitle("\u{1F4C2} \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1 \uC2DC\uC791").setIcon("file-text").onClick(async () => {
             await this.startNoteDevotional();
+          });
+        });
+        menu.addItem((item) => {
+          item.setTitle("\u{1F399}\uFE0F \uD604\uC7AC \uB178\uD2B8\uC5D0\uC11C TTS \uB300\uBCF8\uB9CC \uC0DD\uC131").setIcon("speech").onClick(async () => {
+            await this.generateTtsScriptFromNote();
           });
         });
         if (hasTtsScript) {
@@ -1240,6 +1365,9 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
         case "note":
           this.startNoteDevotional();
           break;
+        case "tts_only":
+          this.generateTtsScriptFromNote();
+          break;
       }
     }).open();
   }
@@ -1293,6 +1421,54 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       return;
     }
     await this.processDevotional(content);
+  }
+  async generateTtsScriptFromNote() {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      new import_obsidian6.Notice("\uC5F4\uB9B0 \uB178\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.");
+      return;
+    }
+    const content = await this.app.vault.read(activeFile);
+    if (!content || content.trim().length === 0) {
+      new import_obsidian6.Notice("\uB178\uD2B8\uAC00 \uBE44\uC5B4\uC788\uC2B5\uB2C8\uB2E4.");
+      return;
+    }
+    console.log("[DevotionalVoice] generateTtsScriptFromNote started.");
+    this.updateStatusBar("Generating TTS...");
+    const processingModal = new ProcessingModal(this.app);
+    processingModal.open();
+    processingModal.appendContent(`### \u{1F399}\uFE0F \uD604\uC7AC \uB178\uD2B8\uB85C\uBD80\uD130 TTS \uB300\uBCF8 \uC0DD\uC131 \uC911...
+
+`);
+    try {
+      const generator = this.generationService.streamGenerateTts(content);
+      let fullText = "";
+      for await (const chunk of generator) {
+        fullText += chunk;
+        processingModal.appendContent(chunk);
+      }
+      processingModal.close();
+      const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
+      if (activeView) {
+        const editor = activeView.editor;
+        const ttsBlock = `
+
+%%TTS-SCRIPT:${fullText.trim()}%%`;
+        const lineCount = editor.lineCount();
+        editor.replaceRange(ttsBlock, { line: lineCount, ch: 0 });
+        new import_obsidian6.Notice("\u2705 TTS \uB300\uBCF8\uC774 \uB178\uD2B8 \uD558\uB2E8\uC5D0 \uAE30\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
+        this.updateStatusBar("Ready");
+      }
+    } catch (e) {
+      if (processingModal)
+        try {
+          processingModal.close();
+        } catch (e2) {
+        }
+      console.error("[DevotionalVoice] TTS Generation Failed:", e);
+      new import_obsidian6.Notice("TTS \uB300\uBCF8 \uC0DD\uC131 \uC2E4\uD328: " + e.message);
+      this.updateStatusBar("Error");
+    }
   }
   async processDevotional(userInput) {
     console.log("[DevotionalVoice] processDevotional started.");
@@ -1477,10 +1653,15 @@ var InputModeModal = class extends import_obsidian6.Modal {
       this.close();
       this.onSelect("selection");
     };
-    const noteBtn = buttonContainer.createEl("button", { text: "\u{1F4C2} \uD604\uC7AC \uB178\uD2B8" });
+    const noteBtn = buttonContainer.createEl("button", { text: "\u{1F4C2} \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1" });
     noteBtn.onclick = () => {
       this.close();
       this.onSelect("note");
+    };
+    const ttsOnlyBtn = buttonContainer.createEl("button", { text: "\u{1F399}\uFE0F TTS \uB300\uBCF8\uB9CC \uC0DD\uC131" });
+    ttsOnlyBtn.onclick = () => {
+      this.close();
+      this.onSelect("tts_only");
     };
   }
   onClose() {
