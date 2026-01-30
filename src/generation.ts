@@ -227,52 +227,66 @@ ${context}
             if (done) break;
             
             buffer += decoder.decode(value, { stream: true });
-            console.log('[DevotionalVoice] Stream Buffer Length:', buffer.length); // DEBUG
-            if (buffer.length > 50000) { console.warn('Buffer too large!'); buffer = ''; } // Safety
+            
+            // Allow for initial '['
+            if (buffer.trimStart().startsWith('[')) {
+                buffer = buffer.trimStart().substring(1);
+            }
 
-            // Refactored inner loop for Correct Buffer Slicing
-            let loopAgain = true;
-            while(loopAgain) {
-                loopAgain = false;
-                
-                let localBalance = 0;
-                let localStart = -1;
-                let localInQuote = false;
-                let localEscaped = false;
-                
-                for(let j=0; j<buffer.length; j++) {
-                     const c = buffer[j];
-                     if(localEscaped) { localEscaped=false; continue; }
-                     if(c==='\\') { localEscaped=true; continue; }
-                     if(c==='"') { localInQuote=!localInQuote; continue; }
-                     
-                     if(!localInQuote) {
-                         if(c==='{') {
-                             if(localBalance===0) localStart = j;
-                             localBalance++;
-                         } else if(c==='}') {
-                             localBalance--;
-                             if(localBalance===0 && localStart !== -1) {
-                                 // Found!
-                                 const rawJson = buffer.substring(localStart, j+1);
-                                 try {
-                                     const p = JSON.parse(rawJson);
-                                     const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
-                                     if(txt) {
-                                         // console.log('[DevotionalVoice] Yielding chunk:', txt.substring(0, 20) + '...');
-                                         accumulatedText += txt;
-                                         yield txt;
-                                     }
-                                 } catch(e) {
-                                     console.error('[DevotionalVoice] JSON Parse Error:', e, rawJson.substring(0, 50));
-                                 }
-                                 
-                                 buffer = buffer.substring(j+1); // Slice off
-                                 loopAgain = true; // Restart scanning from new buffer start
-                                 break; // Break for loop, re-enter while loop
-                             }
-                         }
-                     }
+            // Gemini sends objects usually separated by optional whitespace/comma
+            // We look for the pattern:  { ... "text": "..." ... }
+            // Let's rely on JSON.parse for potential chunks. 
+            // A safer, robust way for Gemini stream (which is clean JSON objects in an array):
+            // We split by closing brace + optional comma
+            
+            // New Logic: 
+            // 1. Find the first occurrence of `}` that balances a `{`? No, too complex.
+            // 2. Just try to find substrings that look like complete JSON objects.
+            
+            let boundary = -1;
+            let openBraces = 0;
+            let inString = false;
+            let escaped = false;
+
+            for (let i = 0; i < buffer.length; i++) {
+                const char = buffer[i];
+                if (escaped) { escaped = false; continue; }
+                if (char === '\\') { escaped = true; continue; }
+                if (char === '"') { inString = !inString; continue; }
+
+                if (!inString) {
+                    if (char === '{') {
+                        openBraces++;
+                    } else if (char === '}') {
+                        openBraces--;
+                        if (openBraces === 0) {
+                            // We found a potential end of an object
+                            const candidate = buffer.substring(0, i + 1).trim();
+                            // Skip if it's just a comma or bracket
+                            if (candidate.length > 2 && candidate.startsWith('{')) {
+                                try {
+                                    const parsed = JSON.parse(candidate);
+                                    const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+                                    if (text) {
+                                        accumulatedText += text;
+                                        yield text;
+                                    }
+                                    
+                                    // Remove this object from buffer
+                                    // Also remove trailing commas
+                                    let nextStart = i + 1;
+                                    while (nextStart < buffer.length && (buffer[nextStart] === ',' || buffer[nextStart].match(/\s/))) {
+                                        nextStart++;
+                                    }
+                                    buffer = buffer.substring(nextStart);
+                                    i = -1; // Reset loop
+                                    openBraces = 0; // Reset count
+                                } catch (e) {
+                                    // Not a valid JSON yet, keep looking
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
