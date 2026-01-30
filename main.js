@@ -664,13 +664,9 @@ ${context}
     console.log("[DevotionalVoice] Stream loop started");
     while (true) {
       const { done, value } = await reader.read();
-      if (done) {
-        console.log("[DevotionalVoice] Stream done");
+      if (done)
         break;
-      }
-      console.log(`[DevotionalVoice] Received chunk: ${value.length} bytes`);
       buffer += decoder.decode(value, { stream: true });
-      console.log("[DevotionalVoice] RAW Buffer Chunk Preview:", buffer.substring(0, 50) + "...");
       let loopAgain = true;
       while (loopAgain) {
         loopAgain = false;
@@ -1301,16 +1297,42 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       processingModal.close();
       const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
       if (activeView) {
+        const editor = activeView.editor;
         const timestamp = new Date().toLocaleString("ko-KR");
+        let referenceSection = "\n\n### \u{1F4DA} \uCC38\uC870 \uB178\uD2B8\n";
+        if (ragResults.length > 0) {
+          referenceSection += ragResults.map((r) => `- [[${r.file.basename}]]`).join("\n");
+        } else {
+          referenceSection += "- \uCC38\uC870\uD55C \uAE30\uC874 \uB178\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.";
+        }
         const ttsBlock = ttsScript ? `
 
 %%TTS-SCRIPT:${ttsScript}%%` : "";
-        let referenceSection = "\n\n### \u{1F4DA} \uCC38\uC870 \uB178\uD2B8\n";
+        const insertionText = `
+
+---
+## \u2728 AI \uBB35\uC0C1 \uACB0\uACFC (${timestamp})
+
+${devotionalText}
+${referenceSection}${ttsBlock}
+
+---`;
+        const cursor = editor.getCursor();
+        editor.replaceRange(insertionText, cursor);
+        new import_obsidian6.Notice("\u2705 \uBB35\uC0C1\uAE00\uC774 \uB178\uD2B8\uC5D0 \uAE30\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4.");
+        this.updateStatusBar("Ready");
+      } else {
+        new import_obsidian6.Notice("\uBB35\uC0C1 \uACB0\uACFC\uB97C \uAE30\uB85D\uD560 \uD65C\uC131 \uB178\uD2B8\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.");
       }
     } catch (e) {
-      processingModal.close();
-      console.error(e);
-      new import_obsidian6.Notice("Generation Failed");
+      if (processingModal)
+        try {
+          processingModal.close();
+        } catch (e2) {
+        }
+      console.error("[DevotionalVoice] Generation Failed:", e);
+      new import_obsidian6.Notice("Generation Failed: " + e.message);
+      this.updateStatusBar("Error");
     }
   }
   async readAloud(editor) {

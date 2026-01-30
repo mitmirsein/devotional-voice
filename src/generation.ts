@@ -225,33 +225,21 @@ ${context}
         console.log('[DevotionalVoice] Stream loop started');
         while (true) {
             const { done, value } = await reader.read();
-            if (done) {
-                console.log('[DevotionalVoice] Stream done');
-                break;
-            }
+            if (done) break;
             
-            console.log(`[DevotionalVoice] Received chunk: ${value.length} bytes`);
             buffer += decoder.decode(value, { stream: true });
-            console.log('[DevotionalVoice] RAW Buffer Chunk Preview:', buffer.substring(0, 50) + '...'); 
-            // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
             
-            // 2. Scan for complete objects
             let loopAgain = true;
             while(loopAgain) {
                 loopAgain = false;
                 
-                // --- MOVED INSIDE LOOP ---
-                // Clean up leading garbage (comma, whitespace) for the current/next object
                 const firstBrace = buffer.indexOf('{');
                 if (firstBrace === -1) {
-                    // No JSON start found yet
                     if (buffer.length > 200) { buffer = buffer.substring(buffer.length - 50); }
-                    break; // Wait for more data
+                    break; 
                 } else if (firstBrace > 0) {
-                    // Discard everything before the first '{'
                     buffer = buffer.substring(firstBrace);
                 }
-                // -------------------------
 
                 let openBraces = 0;
                 let inString = false;
@@ -269,13 +257,11 @@ ${context}
                          } else if(c==='}') {
                              openBraces--;
                              if(openBraces === 0) {
-                                 // Found a complete object block
                                  const rawJson = buffer.substring(0, j+1);
                                  try {
                                      const p = JSON.parse(rawJson);
                                      const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
                                      if(txt) {
-                                         // console.log('[DevotionalVoice] Yielding:', txt.substring(0,10));
                                          accumulatedText += txt;
                                          yield txt;
                                      }
@@ -283,10 +269,9 @@ ${context}
                                      console.error('[DevotionalVoice] JSON Parse Failed:', e);
                                  }
                                  
-                                 // Slice buffer
                                  buffer = buffer.substring(j+1);
-                                 loopAgain = true; // Loop to check if there are MORE objects in buffer
-                                 break; // Break for loop, re-enter while loop
+                                 loopAgain = true;
+                                 break;
                              }
                          }
                      }

@@ -307,21 +307,35 @@ export default class DevotionalVoicePlugin extends Plugin {
 			// Insert into note
 			const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
 			if (activeView) {
+				const editor = activeView.editor;
 				const timestamp = new Date().toLocaleString('ko-KR');
-				// ... (rest of logic) ...
-				// Embed TTS script as hidden comment for later manual playback
-				const ttsBlock = ttsScript ? `\n\n%%TTS-SCRIPT:${ttsScript}%%` : '';
 				
 				// RAG Reference Section
 				let referenceSection = '\n\n### 📚 참조 노트\n';
-				// I need to re-fetch ragResults or keep them? I have them in scope.
-				// Wait, I am inside try block but ragResults is defined inside.
-				// I need to restructure to keep ragResults accessible.
+				if (ragResults.length > 0) {
+					referenceSection += ragResults.map(r => `- [[${r.file.basename}]]`).join('\n');
+				} else {
+					referenceSection += '- 참조한 기존 노트가 없습니다.';
+				}
+
+				// Embed TTS script as hidden comment
+				const ttsBlock = ttsScript ? `\n\n%%TTS-SCRIPT:${ttsScript}%%` : '';
+				
+				const insertionText = `\n\n---\n## ✨ AI 묵상 결과 (${timestamp})\n\n${devotionalText}\n${referenceSection}${ttsBlock}\n\n---`;
+				
+				const cursor = editor.getCursor();
+				editor.replaceRange(insertionText, cursor);
+				
+				new Notice('✅ 묵상글이 노트에 기록되었습니다.');
+				this.updateStatusBar('Ready');
+			} else {
+				new Notice('묵상 결과를 기록할 활성 노트를 찾을 수 없습니다.');
 			}
 		} catch (e) {
-			processingModal.close();
-			console.error(e);
-			new Notice('Generation Failed');
+			if (processingModal) try { processingModal.close(); } catch {}
+			console.error('[DevotionalVoice] Generation Failed:', e);
+			new Notice('Generation Failed: ' + e.message);
+			this.updateStatusBar('Error');
 		}
 	}
 
