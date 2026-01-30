@@ -993,8 +993,8 @@ var RecordingModal = class extends import_obsidian5.Modal {
       clearInterval(this.timerInterval);
     if (this.animationId)
       cancelAnimationFrame(this.animationId);
-    if (this.audioContext) {
-      this.audioContext.close();
+    if (this.audioContext && this.audioContext.state !== "closed") {
+      this.audioContext.close().catch((e) => console.error("[DevotionalVoice] Error shutting down AudioContext:", e));
     }
     this.contentEl.empty();
   }
