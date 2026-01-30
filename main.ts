@@ -144,6 +144,34 @@ export default class DevotionalVoicePlugin extends Plugin {
 		});
 
 		this.addSettingTab(new DevotionalVoiceSettingTab(this.app, this));
+
+		// Register Editor Context Menu (Right-Click)
+		this.registerEvent(
+			this.app.workspace.on('editor-menu', (menu, editor, view) => {
+				const selection = editor.getSelection();
+				
+				if (selection && selection.trim().length > 0) {
+					menu.addItem((item) => {
+						item
+							.setTitle('📖 Devotional Voice: 선택 영역으로 묵상')
+							.setIcon('book-open')
+							.onClick(async () => {
+								await this.startSelectionDevotional(editor);
+							});
+					});
+				} else {
+					menu.addItem((item) => {
+						item
+							.setTitle('📖 Devotional Voice: 현재 노트로 묵상')
+							.setIcon('book-open')
+							.onClick(async () => {
+								await this.startNoteDevotional();
+							});
+					});
+				}
+			})
+		);
+
 		console.log('[DevotionalVoice] Plugin loaded successfully.');
 	}
 

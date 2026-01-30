@@ -1153,6 +1153,24 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       editorCallback: (editor) => this.saveAudioToNote(editor)
     });
     this.addSettingTab(new DevotionalVoiceSettingTab(this.app, this));
+    this.registerEvent(
+      this.app.workspace.on("editor-menu", (menu, editor, view) => {
+        const selection = editor.getSelection();
+        if (selection && selection.trim().length > 0) {
+          menu.addItem((item) => {
+            item.setTitle("\u{1F4D6} Devotional Voice: \uC120\uD0DD \uC601\uC5ED\uC73C\uB85C \uBB35\uC0C1").setIcon("book-open").onClick(async () => {
+              await this.startSelectionDevotional(editor);
+            });
+          });
+        } else {
+          menu.addItem((item) => {
+            item.setTitle("\u{1F4D6} Devotional Voice: \uD604\uC7AC \uB178\uD2B8\uB85C \uBB35\uC0C1").setIcon("book-open").onClick(async () => {
+              await this.startNoteDevotional();
+            });
+          });
+        }
+      })
+    );
     console.log("[DevotionalVoice] Plugin loaded successfully.");
   }
   getRAGSettings() {
