@@ -227,7 +227,9 @@ ${context}
             if (done) break;
             
             buffer += decoder.decode(value, { stream: true });
-            
+            console.log('[DevotionalVoice] Stream Buffer Length:', buffer.length); // DEBUG
+            if (buffer.length > 50000) { console.warn('Buffer too large!'); buffer = ''; } // Safety
+
             // Refactored inner loop for Correct Buffer Slicing
             let loopAgain = true;
             while(loopAgain) {
@@ -257,10 +259,13 @@ ${context}
                                      const p = JSON.parse(rawJson);
                                      const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
                                      if(txt) {
+                                         // console.log('[DevotionalVoice] Yielding chunk:', txt.substring(0, 20) + '...');
                                          accumulatedText += txt;
                                          yield txt;
                                      }
-                                 } catch(e) {}
+                                 } catch(e) {
+                                     console.error('[DevotionalVoice] JSON Parse Error:', e, rawJson.substring(0, 50));
+                                 }
                                  
                                  buffer = buffer.substring(j+1); // Slice off
                                  loopAgain = true; // Restart scanning from new buffer start

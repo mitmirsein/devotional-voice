@@ -666,6 +666,11 @@ ${context}
       if (done)
         break;
       buffer += decoder.decode(value, { stream: true });
+      console.log("[DevotionalVoice] Stream Buffer Length:", buffer.length);
+      if (buffer.length > 5e4) {
+        console.warn("Buffer too large!");
+        buffer = "";
+      }
       let loopAgain = true;
       while (loopAgain) {
         loopAgain = false;
@@ -704,6 +709,7 @@ ${context}
                     yield txt;
                   }
                 } catch (e) {
+                  console.error("[DevotionalVoice] JSON Parse Error:", e, rawJson.substring(0, 50));
                 }
                 buffer = buffer.substring(j + 1);
                 loopAgain = true;
