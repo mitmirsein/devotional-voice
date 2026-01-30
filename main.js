@@ -661,11 +661,16 @@ ${context}
     var _a, _b, _c, _d, _e;
     let buffer = "";
     let accumulatedText = "";
+    console.log("[DevotionalVoice] Stream loop started");
     while (true) {
       const { done, value } = await reader.read();
-      if (done)
+      if (done) {
+        console.log("[DevotionalVoice] Stream done");
         break;
+      }
+      console.log(`[DevotionalVoice] Received chunk: ${value.length} bytes`);
       buffer += decoder.decode(value, { stream: true });
+      console.log("[DevotionalVoice] RAW Buffer Chunk Preview:", buffer.substring(0, 50) + "...");
       const firstBrace = buffer.indexOf("{");
       if (firstBrace === -1) {
         if (buffer.length > 200) {

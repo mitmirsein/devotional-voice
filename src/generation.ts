@@ -222,12 +222,18 @@ ${context}
         let buffer = '';
         let accumulatedText = '';
         
+        console.log('[DevotionalVoice] Stream loop started');
         while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+                console.log('[DevotionalVoice] Stream done');
+                break;
+            }
             
+            console.log(`[DevotionalVoice] Received chunk: ${value.length} bytes`);
             buffer += decoder.decode(value, { stream: true });
-        // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
+            console.log('[DevotionalVoice] RAW Buffer Chunk Preview:', buffer.substring(0, 50) + '...'); 
+            // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
             
             // 1. Robust Garbage Collection: Ensure buffer starts with '{'
             const firstBrace = buffer.indexOf('{');
