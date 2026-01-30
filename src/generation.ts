@@ -229,65 +229,70 @@ ${context}
             buffer += decoder.decode(value, { stream: true });
         // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
             
-            // Allow for initial '['
-            if (buffer.trimStart().startsWith('[')) {
-                buffer = buffer.trimStart().substring(1);
+            // 1. Robust Garbage Collection: Ensure buffer starts with '{'
+            const firstBrace = buffer.indexOf('{');
+            if (firstBrace === -1) {
+                // No JSON object started yet.
+                if (buffer.length > 200) { buffer = buffer.substring(buffer.length - 50); } // Prevent infinite growth
+                continue; 
+            } else if (firstBrace > 0) {
+                buffer = buffer.substring(firstBrace);
             }
 
-            // Gemini sends objects usually separated by optional whitespace/comma
-            // We look for the pattern:  { ... "text": "..." ... }
-            // Let's rely on JSON.parse for potential chunks. 
-            // A safer, robust way for Gemini stream (which is clean JSON objects in an array):
-            // We split by closing brace + optional comma
-            
-            // New Logic: 
-            // 1. Find the first occurrence of `}` that balances a `{`? No, too complex.
-            // 2. Just try to find substrings that look like complete JSON objects.
-            
-            let boundary = -1;
-            let openBraces = 0;
-            let inString = false;
-            let escaped = false;
-
-            for (let i = 0; i < buffer.length; i++) {
-                const char = buffer[i];
-                if (escaped) { escaped = false; continue; }
-                if (char === '\\') { escaped = true; continue; }
-                if (char === '"') { inString = !inString; continue; }
-
-                if (!inString) {
-                    if (char === '{') {
-                        openBraces++;
-                    } else if (char === '}') {
-                        openBraces--;
-                        if (openBraces === 0) {
-                            // We found a potential end of an object
-                            const candidate = buffer.substring(0, i + 1).trim();
-                            // Skip if it's just a comma or bracket
-                            if (candidate.length > 2 && candidate.startsWith('{')) {
-                                try {
-                                    const parsed = JSON.parse(candidate);
-                                    const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                                    if (text) {
-                                        accumulatedText += text;
-                                        yield text;
-                                    }
-                                    
-                                    // Remove this object from buffer
-                                    // Also remove trailing commas
-                                    let nextStart = i + 1;
-                                    while (nextStart < buffer.length && (buffer[nextStart] === ',' || buffer[nextStart].match(/\s/))) {
-                                        nextStart++;
-                                    }
-                                    buffer = buffer.substring(nextStart);
-                                    i = -1; // Reset loop
-                                    openBraces = 0; // Reset count
-                                } catch (e) {
-                                    // Not a valid JSON yet, keep looking
-                                }
-                            }
-                        }
-                    }
+            // 2. Scan for complete objects
+            let loopAgain = true;
+            while(loopAgain) {
+                loopAgain = false;
+                
+                let openBraces = 0;
+                let inString = false;
+                let escaped = false;
+                
+                for(let j=0; j<buffer.length; j++) {
+                     const c = buffer[j];
+                     if(escaped) { escaped=false; continue; }
+                     if(c==='\\') { escaped=true; continue; }
+                     if(c==='"') { inString=!inString; continue; }
+                     
+                     if(!inString) {
+                         if(c==='{') {
+                             openBraces++;
+                         } else if(c==='}') {
+                             openBraces--;
+                             if(openBraces === 0) {
+                                 // Found a complete object block
+                                 const rawJson = buffer.substring(0, j+1);
+                                 try {
+                                     const p = JSON.parse(rawJson);
+                                     const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
+                                     if(txt) {
+                                         // console.log('[DevotionalVoice] Yielding:', txt.substring(0,10));
+                                         accumulatedText += txt;
+                                         yield txt;
+                                     }
+                                 } catch(e) {
+                                     console.error('[DevotionalVoice] JSON Parse Failed:', e);
+                                 }
+                                 
+                                 // Slice buffer
+                                 buffer = buffer.substring(j+1);
+                                 
+                                 // Clean up leading garbage for the NEXT object immediately
+                                 const nextBrace = buffer.indexOf('{');
+                                 if (nextBrace !== -1) {
+                                     buffer = buffer.substring(nextBrace);
+                                     loopAgain = true; // Process next object in this same chunk
+                                 } else {
+                                     // No more objects, clear garbage if any
+                                     if (buffer.trim().length > 0 && buffer.indexOf('{') === -1) {
+                                         // buffer contains only trailing garbage (like "],\n")
+                                         buffer = '';
+                                     }
+                                 }
+                                 break; // Break for loop
+                             }
+                         }
+                     }
                 }
             }
         }

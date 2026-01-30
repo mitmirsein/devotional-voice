@@ -666,51 +666,63 @@ ${context}
       if (done)
         break;
       buffer += decoder.decode(value, { stream: true });
-      if (buffer.trimStart().startsWith("[")) {
-        buffer = buffer.trimStart().substring(1);
+      const firstBrace = buffer.indexOf("{");
+      if (firstBrace === -1) {
+        if (buffer.length > 200) {
+          buffer = buffer.substring(buffer.length - 50);
+        }
+        continue;
+      } else if (firstBrace > 0) {
+        buffer = buffer.substring(firstBrace);
       }
-      let boundary = -1;
-      let openBraces = 0;
-      let inString = false;
-      let escaped = false;
-      for (let i = 0; i < buffer.length; i++) {
-        const char = buffer[i];
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (char === "\\") {
-          escaped = true;
-          continue;
-        }
-        if (char === '"') {
-          inString = !inString;
-          continue;
-        }
-        if (!inString) {
-          if (char === "{") {
-            openBraces++;
-          } else if (char === "}") {
-            openBraces--;
-            if (openBraces === 0) {
-              const candidate = buffer.substring(0, i + 1).trim();
-              if (candidate.length > 2 && candidate.startsWith("{")) {
+      let loopAgain = true;
+      while (loopAgain) {
+        loopAgain = false;
+        let openBraces = 0;
+        let inString = false;
+        let escaped = false;
+        for (let j = 0; j < buffer.length; j++) {
+          const c = buffer[j];
+          if (escaped) {
+            escaped = false;
+            continue;
+          }
+          if (c === "\\") {
+            escaped = true;
+            continue;
+          }
+          if (c === '"') {
+            inString = !inString;
+            continue;
+          }
+          if (!inString) {
+            if (c === "{") {
+              openBraces++;
+            } else if (c === "}") {
+              openBraces--;
+              if (openBraces === 0) {
+                const rawJson = buffer.substring(0, j + 1);
                 try {
-                  const parsed = JSON.parse(candidate);
-                  const text = (_e = (_d = (_c = (_b = (_a = parsed.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text;
-                  if (text) {
-                    accumulatedText += text;
-                    yield text;
+                  const p = JSON.parse(rawJson);
+                  const txt = (_e = (_d = (_c = (_b = (_a = p.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text;
+                  if (txt) {
+                    accumulatedText += txt;
+                    yield txt;
                   }
-                  let nextStart = i + 1;
-                  while (nextStart < buffer.length && (buffer[nextStart] === "," || buffer[nextStart].match(/\s/))) {
-                    nextStart++;
-                  }
-                  buffer = buffer.substring(nextStart);
-                  i = -1;
-                  openBraces = 0;
                 } catch (e) {
+                  console.error("[DevotionalVoice] JSON Parse Failed:", e);
                 }
+                buffer = buffer.substring(j + 1);
+                const nextBrace = buffer.indexOf("{");
+                if (nextBrace !== -1) {
+                  buffer = buffer.substring(nextBrace);
+                  loopAgain = true;
+                } else {
+                  if (buffer.trim().length > 0 && buffer.indexOf("{") === -1) {
+                    buffer = "";
+                  }
+                }
+                break;
               }
             }
           }
