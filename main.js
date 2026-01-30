@@ -671,18 +671,18 @@ ${context}
       console.log(`[DevotionalVoice] Received chunk: ${value.length} bytes`);
       buffer += decoder.decode(value, { stream: true });
       console.log("[DevotionalVoice] RAW Buffer Chunk Preview:", buffer.substring(0, 50) + "...");
-      const firstBrace = buffer.indexOf("{");
-      if (firstBrace === -1) {
-        if (buffer.length > 200) {
-          buffer = buffer.substring(buffer.length - 50);
-        }
-        continue;
-      } else if (firstBrace > 0) {
-        buffer = buffer.substring(firstBrace);
-      }
       let loopAgain = true;
       while (loopAgain) {
         loopAgain = false;
+        const firstBrace = buffer.indexOf("{");
+        if (firstBrace === -1) {
+          if (buffer.length > 200) {
+            buffer = buffer.substring(buffer.length - 50);
+          }
+          break;
+        } else if (firstBrace > 0) {
+          buffer = buffer.substring(firstBrace);
+        }
         let openBraces = 0;
         let inString = false;
         let escaped = false;
@@ -718,15 +718,7 @@ ${context}
                   console.error("[DevotionalVoice] JSON Parse Failed:", e);
                 }
                 buffer = buffer.substring(j + 1);
-                const nextBrace = buffer.indexOf("{");
-                if (nextBrace !== -1) {
-                  buffer = buffer.substring(nextBrace);
-                  loopAgain = true;
-                } else {
-                  if (buffer.trim().length > 0 && buffer.indexOf("{") === -1) {
-                    buffer = "";
-                  }
-                }
+                loopAgain = true;
                 break;
               }
             }

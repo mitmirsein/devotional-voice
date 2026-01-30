@@ -235,21 +235,24 @@ ${context}
             console.log('[DevotionalVoice] RAW Buffer Chunk Preview:', buffer.substring(0, 50) + '...'); 
             // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
             
-            // 1. Robust Garbage Collection: Ensure buffer starts with '{'
-            const firstBrace = buffer.indexOf('{');
-            if (firstBrace === -1) {
-                // No JSON object started yet.
-                if (buffer.length > 200) { buffer = buffer.substring(buffer.length - 50); } // Prevent infinite growth
-                continue; 
-            } else if (firstBrace > 0) {
-                buffer = buffer.substring(firstBrace);
-            }
-
             // 2. Scan for complete objects
             let loopAgain = true;
             while(loopAgain) {
                 loopAgain = false;
                 
+                // --- MOVED INSIDE LOOP ---
+                // Clean up leading garbage (comma, whitespace) for the current/next object
+                const firstBrace = buffer.indexOf('{');
+                if (firstBrace === -1) {
+                    // No JSON start found yet
+                    if (buffer.length > 200) { buffer = buffer.substring(buffer.length - 50); }
+                    break; // Wait for more data
+                } else if (firstBrace > 0) {
+                    // Discard everything before the first '{'
+                    buffer = buffer.substring(firstBrace);
+                }
+                // -------------------------
+
                 let openBraces = 0;
                 let inString = false;
                 let escaped = false;
@@ -282,20 +285,8 @@ ${context}
                                  
                                  // Slice buffer
                                  buffer = buffer.substring(j+1);
-                                 
-                                 // Clean up leading garbage for the NEXT object immediately
-                                 const nextBrace = buffer.indexOf('{');
-                                 if (nextBrace !== -1) {
-                                     buffer = buffer.substring(nextBrace);
-                                     loopAgain = true; // Process next object in this same chunk
-                                 } else {
-                                     // No more objects, clear garbage if any
-                                     if (buffer.trim().length > 0 && buffer.indexOf('{') === -1) {
-                                         // buffer contains only trailing garbage (like "],\n")
-                                         buffer = '';
-                                     }
-                                 }
-                                 break; // Break for loop
+                                 loopAgain = true; // Loop to check if there are MORE objects in buffer
+                                 break; // Break for loop, re-enter while loop
                              }
                          }
                      }
