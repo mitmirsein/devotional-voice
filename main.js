@@ -635,7 +635,7 @@ ${context}
 4. **\uB0B4\uC6A9**: \uB178\uD2B8\uC758 \uD575\uC2EC \uD1B5\uCC30\uC744 \uD558\uB098\uB3C4 \uBE60\uB728\uB9AC\uC9C0 \uC54A\uACE0 \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC5F0\uACB0\uD558\uC5EC \uB0AD\uB3C5\uBB38\uC73C\uB85C \uBCC0\uD658.
 
 ## \uB178\uD2B8 \uB0B4\uC6A9
-\${noteContent}
+${noteContent}
 
 ## \uCD9C\uB825 \uD615\uC2DD
 \uBCC4\uB3C4\uC758 \uB3C4\uC785\uBD80 \uC5C6\uC774 \uBC14\uB85C TTS \uB300\uBCF8\uB9CC \uC791\uC131\uD574 \uC8FC\uC138\uC694. (\uB9C8\uD06C\uB2E4\uC6B4 \uC81C\uBAA9 \uB4F1\uC740 \uC0DD\uB7B5\uD558\uACE0 \uC2E4\uC81C \uC77D\uC744 \uB0B4\uC6A9\uB9CC \uC791\uC131)`;
@@ -649,10 +649,10 @@ ${context}
       throw new Error("Gemini API key is not configured");
     }
     const prompt = this.buildTtsOnlyPrompt(noteContent);
-    console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: \${prompt.length} chars`);
+    console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: ${prompt.length} chars`);
     const model = this.settings.geminiModel || "gemini-2.0-flash";
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/\${model}:streamGenerateContent?key=\${this.settings.geminiApiKey}`;
-    console.log(`[DevotionalVoice] Calling Gemini Stream API (\${model}) for TTS-only...`);
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.settings.geminiApiKey}`;
+    console.log(`[DevotionalVoice] Calling Gemini Stream API (${model}) for TTS-only...`);
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -666,7 +666,7 @@ ${context}
         })
       });
       if (!response.ok) {
-        throw new Error(`Gemini Stream API error: \${response.status}`);
+        throw new Error(`Gemini Stream API error: ${response.status}`);
       }
       if (!response.body)
         throw new Error("No response body");
@@ -697,7 +697,7 @@ ${context}
               escaped = false;
               continue;
             }
-            if (c === "\\\\") {
+            if (c === "\\") {
               escaped = true;
               continue;
             }

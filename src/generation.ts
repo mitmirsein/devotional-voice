@@ -184,7 +184,7 @@ ${context}
 4. **내용**: 노트의 핵심 통찰을 하나도 빠뜨리지 않고 자연스럽게 연결하여 낭독문으로 변환.
 
 ## 노트 내용
-\${noteContent}
+${noteContent}
 
 ## 출력 형식
 별도의 도입부 없이 바로 TTS 대본만 작성해 주세요. (마크다운 제목 등은 생략하고 실제 읽을 내용만 작성)`;
@@ -201,12 +201,12 @@ ${context}
         }
 
         const prompt = this.buildTtsOnlyPrompt(noteContent);
-        console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: \${prompt.length} chars`);
+        console.log(`[DevotionalVoice] TTS-Only Prompt built. Length: ${prompt.length} chars`);
         
         const model = this.settings.geminiModel || 'gemini-2.0-flash';
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/\${model}:streamGenerateContent?key=\${this.settings.geminiApiKey}`;
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.settings.geminiApiKey}`;
 
-        console.log(`[DevotionalVoice] Calling Gemini Stream API (\${model}) for TTS-only...`);
+        console.log(`[DevotionalVoice] Calling Gemini Stream API (${model}) for TTS-only...`);
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -221,7 +221,7 @@ ${context}
             });
 
             if (!response.ok) {
-                throw new Error(`Gemini Stream API error: \${response.status}`);
+                throw new Error(`Gemini Stream API error: ${response.status}`);
             }
 
             if (!response.body) throw new Error('No response body');
@@ -251,7 +251,7 @@ ${context}
                     for(let j=0; j<buffer.length; j++) {
                         const c = buffer[j];
                         if(escaped) { escaped=false; continue; }
-                        if(c==='\\\\') { escaped=true; continue; }
+                        if(c==='\\') { escaped=true; continue; }
                         if(c==='"') { inString=!inString; continue; }
                         if(!inString) {
                             if(c==='{') openBraces++;
