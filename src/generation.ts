@@ -227,6 +227,7 @@ ${context}
             if (done) break;
             
             buffer += decoder.decode(value, { stream: true });
+        // console.log('[DevotionalVoice] RAW Buffer Chunk:', buffer); // Enable this for extreme debug
             
             // Allow for initial '['
             if (buffer.trimStart().startsWith('[')) {
