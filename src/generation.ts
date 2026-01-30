@@ -208,57 +208,74 @@ ${context}
 
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
-            let accumulatedText = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                // Gemini returns a JSON array structure in streaming mode, usually starting with [ and ending with ] with commas in between objects.
-                // We need to robustly parse this JSON stream. 
-                // However, doing full JSON stream parsing is complex.
-                // Simple regex approach to find "text": "..." within the chunks.
-                
-                // Note: The chunks might cut off in the middle of a JSON string.
-                // A safer way for this specific API which returns well-formed JSON objects in the stream (usually one per line or chunk):
-                
-                // Let's accumulate and try to find complete JSON objects.
-                const lines = chunk.split('\n');
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed) continue;
-                    if (trimmed === '[' || trimmed === ']' || trimmed === ',' || trimmed === ']') continue; 
-
-                    try {
-                        // The line might be part of a JSON list like: { ... },
-                        let jsonStr = trimmed;
-                        if (jsonStr.startsWith(',')) jsonStr = jsonStr.substring(1);
-                        if (jsonStr.endsWith(',')) jsonStr = jsonStr.substring(0, jsonStr.length - 1);
-                        
-                        const parsed = JSON.parse(jsonStr);
-                        const textChunk = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-                        
-                        if (textChunk) {
-                            accumulatedText += textChunk;
-                            yield textChunk;
-                        }
-                    } catch (e) {
-                        // If line is not valid JSON, it might be due to fragmentation. 
-                        // For this MVP, we ignore fragmented JSON chunks (Gemini usually sends complete objects per chunk), 
-                        // but strictly speaking we should buffer.
-                        // Let's assume standard Gemini behavior (one JSON object per event).
-                    }
-                }
-            }
-
-            return this.parseResponse(accumulatedText);
-
+            
+            // Re-implementing the loop with the safer logic defined above in comment
+            return yield* this.processBufferWithLogic(reader, decoder);
+            
         } catch (error) {
             console.error('Gemini Stream Error:', error);
             throw error;
         }
     }
+    
+    private async *processBufferWithLogic(reader: ReadableStreamDefaultReader<Uint8Array>, decoder: TextDecoder): AsyncGenerator<string, GenerationResult, unknown> {
+        let buffer = '';
+        let accumulatedText = '';
+        
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            
+            // Refactored inner loop for Correct Buffer Slicing
+            let loopAgain = true;
+            while(loopAgain) {
+                loopAgain = false;
+                
+                let localBalance = 0;
+                let localStart = -1;
+                let localInQuote = false;
+                let localEscaped = false;
+                
+                for(let j=0; j<buffer.length; j++) {
+                     const c = buffer[j];
+                     if(localEscaped) { localEscaped=false; continue; }
+                     if(c==='\\') { localEscaped=true; continue; }
+                     if(c==='"') { localInQuote=!localInQuote; continue; }
+                     
+                     if(!localInQuote) {
+                         if(c==='{') {
+                             if(localBalance===0) localStart = j;
+                             localBalance++;
+                         } else if(c==='}') {
+                             localBalance--;
+                             if(localBalance===0 && localStart !== -1) {
+                                 // Found!
+                                 const rawJson = buffer.substring(localStart, j+1);
+                                 try {
+                                     const p = JSON.parse(rawJson);
+                                     const txt = p.candidates?.[0]?.content?.parts?.[0]?.text;
+                                     if(txt) {
+                                         accumulatedText += txt;
+                                         yield txt;
+                                     }
+                                 } catch(e) {}
+                                 
+                                 buffer = buffer.substring(j+1); // Slice off
+                                 loopAgain = true; // Restart scanning from new buffer start
+                                 break; // Break for loop, re-enter while loop
+                             }
+                         }
+                     }
+                }
+            }
+        }
+        
+        return this.parseResponse(accumulatedText);
+    }
+
+
 
     /**
      * Update settings

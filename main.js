@@ -625,7 +625,6 @@ ${context}
    * Stream generate using Fetch API
    */
   async *streamGenerate(userInput, ragResults) {
-    var _a, _b, _c, _d, _e;
     if (!this.settings.geminiApiKey) {
       throw new Error("Gemini API key is not configured");
     }
@@ -652,40 +651,70 @@ ${context}
         throw new Error("No response body");
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let accumulatedText = "";
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done)
-          break;
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split("\n");
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed)
-            continue;
-          if (trimmed === "[" || trimmed === "]" || trimmed === "," || trimmed === "]")
-            continue;
-          try {
-            let jsonStr = trimmed;
-            if (jsonStr.startsWith(","))
-              jsonStr = jsonStr.substring(1);
-            if (jsonStr.endsWith(","))
-              jsonStr = jsonStr.substring(0, jsonStr.length - 1);
-            const parsed = JSON.parse(jsonStr);
-            const textChunk = (_e = (_d = (_c = (_b = (_a = parsed.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text;
-            if (textChunk) {
-              accumulatedText += textChunk;
-              yield textChunk;
-            }
-          } catch (e) {
-          }
-        }
-      }
-      return this.parseResponse(accumulatedText);
+      return yield* this.processBufferWithLogic(reader, decoder);
     } catch (error) {
       console.error("Gemini Stream Error:", error);
       throw error;
     }
+  }
+  async *processBufferWithLogic(reader, decoder) {
+    var _a, _b, _c, _d, _e;
+    let buffer = "";
+    let accumulatedText = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done)
+        break;
+      buffer += decoder.decode(value, { stream: true });
+      let loopAgain = true;
+      while (loopAgain) {
+        loopAgain = false;
+        let localBalance = 0;
+        let localStart = -1;
+        let localInQuote = false;
+        let localEscaped = false;
+        for (let j = 0; j < buffer.length; j++) {
+          const c = buffer[j];
+          if (localEscaped) {
+            localEscaped = false;
+            continue;
+          }
+          if (c === "\\") {
+            localEscaped = true;
+            continue;
+          }
+          if (c === '"') {
+            localInQuote = !localInQuote;
+            continue;
+          }
+          if (!localInQuote) {
+            if (c === "{") {
+              if (localBalance === 0)
+                localStart = j;
+              localBalance++;
+            } else if (c === "}") {
+              localBalance--;
+              if (localBalance === 0 && localStart !== -1) {
+                const rawJson = buffer.substring(localStart, j + 1);
+                try {
+                  const p = JSON.parse(rawJson);
+                  const txt = (_e = (_d = (_c = (_b = (_a = p.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text;
+                  if (txt) {
+                    accumulatedText += txt;
+                    yield txt;
+                  }
+                } catch (e) {
+                }
+                buffer = buffer.substring(j + 1);
+                loopAgain = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+    return this.parseResponse(accumulatedText);
   }
   /**
    * Update settings
