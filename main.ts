@@ -315,38 +315,17 @@ export default class DevotionalVoicePlugin extends Plugin {
 			processingModal.appendContent(`\n\n[System] Found ${ragResults.length} relevant notes.\n\n`);
 
 			new Notice('✨ 묵상글 생성 중 (Streaming)...');
+			console.log('[DevotionalVoice] Starting Gemini Stream Generation...');
 			
-			// Stream Generation
-			// Phase 1: Just validation (removed logic to avoid duping)
-		} catch (error) {
-			console.error('Initial Search Error', error);
-			processingModal.close();
-			new Notice('Error during search');
-			return;
-		}
-		
-		// Wait... I need the `result` (markdown + ttsScript).
-		// Since I cannot easily get the return value of an async generator in a for-await loop,
-		// I will just accumulate the text myself in this variable.
-		let fullText = '';
-		
-		try {
-			// Re-run the loop logic properly to capture fullText
 			const generator = this.generationService.streamGenerate(userInput, ragResults);
 			
+			let fullText = '';
 			for await (const chunk of generator) {
 				fullText += chunk;
 				processingModal.appendContent(chunk);
 			}
 			
-			// Allow user to view the result for a moment? 
-			// No, proceed to insert into editor.
-			
-			// Parse the accumulated text using the service's logic (I need to make parseResponse public or duplicate logic)
-			// Let's duplicate simple separator logic here or make `parseResponse` public.
-			// Accessing private method is not good, but in TS inside plugin I can cast to any.
-			// Or just implement simple split here.
-			
+			// Parse the accumulated text
 			let devotionalText = fullText;
 			let ttsScript = '';
 			const separator = '|||TTS_SCRIPT_START|||';
@@ -355,9 +334,6 @@ export default class DevotionalVoicePlugin extends Plugin {
 				const parts = fullText.split(separator);
 				devotionalText = parts[0].trim();
 				ttsScript = parts[1].trim();
-			} else {
-				// Fallback to JSON check if needed (legacy) but separator is primary now.
-				// For simple migration, let's assume if no separator, it's all markdown (or failed JSON)
 			}
 
 			processingModal.close();
@@ -391,8 +367,8 @@ export default class DevotionalVoicePlugin extends Plugin {
 			}
 		} catch (e) {
 			if (processingModal) try { processingModal.close(); } catch {}
-			console.error('[DevotionalVoice] Generation Failed:', e);
-			new Notice('Generation Failed: ' + e.message);
+			console.error('[DevotionalVoice] processDevotional error:', e);
+			new Notice('오류 발생: ' + (e.message || '알 수 없는 오류'));
 			this.updateStatusBar('Error');
 		}
 	}

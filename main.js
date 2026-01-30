@@ -630,8 +630,10 @@ ${context}
     }
     const context = this.buildContext(ragResults);
     const prompt = this.buildPrompt(userInput, context);
+    console.log(`[DevotionalVoice] Generation Prompt built. Length: ${prompt.length} chars`);
     const model = this.settings.geminiModel || "gemini-2.0-flash";
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.settings.geminiApiKey}`;
+    console.log(`[DevotionalVoice] Calling Gemini Stream API (${model})...`);
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -661,10 +663,14 @@ ${context}
     var _a, _b, _c, _d, _e;
     let buffer = "";
     let accumulatedText = "";
+    console.log("[DevotionalVoice] Stream reader obtained. Starting loop...");
     while (true) {
       const { done, value } = await reader.read();
-      if (done)
+      if (done) {
+        console.log("[DevotionalVoice] Stream reading complete.");
         break;
+      }
+      console.log(`[DevotionalVoice] Received chunk of ${value.length} bytes`);
       buffer += decoder.decode(value, { stream: true });
       let loopAgain = true;
       while (loopAgain) {
@@ -1304,15 +1310,9 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
 
 `);
       new import_obsidian6.Notice("\u2728 \uBB35\uC0C1\uAE00 \uC0DD\uC131 \uC911 (Streaming)...");
-    } catch (error) {
-      console.error("Initial Search Error", error);
-      processingModal.close();
-      new import_obsidian6.Notice("Error during search");
-      return;
-    }
-    let fullText = "";
-    try {
+      console.log("[DevotionalVoice] Starting Gemini Stream Generation...");
       const generator = this.generationService.streamGenerate(userInput, ragResults);
+      let fullText = "";
       for await (const chunk of generator) {
         fullText += chunk;
         processingModal.appendContent(chunk);
@@ -1324,7 +1324,6 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
         const parts = fullText.split(separator);
         devotionalText = parts[0].trim();
         ttsScript = parts[1].trim();
-      } else {
       }
       processingModal.close();
       const activeView = this.app.workspace.getActiveViewOfType(import_obsidian6.MarkdownView);
@@ -1362,8 +1361,8 @@ ${referenceSection}${ttsBlock}
           processingModal.close();
         } catch (e2) {
         }
-      console.error("[DevotionalVoice] Generation Failed:", e);
-      new import_obsidian6.Notice("Generation Failed: " + e.message);
+      console.error("[DevotionalVoice] processDevotional error:", e);
+      new import_obsidian6.Notice("\uC624\uB958 \uBC1C\uC0DD: " + (e.message || "\uC54C \uC218 \uC5C6\uB294 \uC624\uB958"));
       this.updateStatusBar("Error");
     }
   }

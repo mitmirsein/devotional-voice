@@ -183,10 +183,12 @@ ${context}
 
         const context = this.buildContext(ragResults);
         const prompt = this.buildPrompt(userInput, context);
+        console.log(`[DevotionalVoice] Generation Prompt built. Length: ${prompt.length} chars`);
         
         const model = this.settings.geminiModel || 'gemini-2.0-flash';
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.settings.geminiApiKey}`;
 
+        console.log(`[DevotionalVoice] Calling Gemini Stream API (${model})...`);
         try {
             const response = await fetch(apiUrl, {
                 method: 'POST',
@@ -222,10 +224,15 @@ ${context}
         let buffer = '';
         let accumulatedText = '';
         
+        console.log('[DevotionalVoice] Stream reader obtained. Starting loop...');
         while (true) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+                console.log('[DevotionalVoice] Stream reading complete.');
+                break;
+            }
             
+            console.log(`[DevotionalVoice] Received chunk of ${value.length} bytes`);
             buffer += decoder.decode(value, { stream: true });
             
             let loopAgain = true;
