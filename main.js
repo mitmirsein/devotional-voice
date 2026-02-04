@@ -33,7 +33,7 @@ var import_obsidian6 = require("obsidian");
 var MODELS = {
   openai: "whisper-1",
   groq: "whisper-large-v3",
-  gemini: "gemini-1.5-flash-latest"
+  gemini: "gemini-2.0-flash"
 };
 var API_ENDPOINTS = {
   openai: "https://api.openai.com/v1/audio/transcriptions",
