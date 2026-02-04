@@ -10,7 +10,7 @@ export type ServiceProvider = 'openai' | 'groq' | 'gemini';
 export const MODELS: Record<ServiceProvider, string> = {
     openai: 'whisper-1',
     groq: 'whisper-large-v3',
-    gemini: 'gemini-1.5-flash'
+    gemini: 'gemini-1.5-flash-latest'
 } as const;
 
 // API Endpoints

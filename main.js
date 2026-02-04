@@ -33,7 +33,7 @@ var import_obsidian6 = require("obsidian");
 var MODELS = {
   openai: "whisper-1",
   groq: "whisper-large-v3",
-  gemini: "gemini-1.5-flash"
+  gemini: "gemini-1.5-flash-latest"
 };
 var API_ENDPOINTS = {
   openai: "https://api.openai.com/v1/audio/transcriptions",
@@ -291,8 +291,12 @@ var TranscriptionService = class {
     var _a, _b, _c, _d, _e;
     const arrayBuffer = await audioBlob.arrayBuffer();
     const base64Audio = Buffer.from(arrayBuffer).toString("base64");
-    const model = MODELS["gemini"];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const cleanApiKey = apiKey.trim();
+    let model = MODELS["gemini"] || "gemini-1.5-flash";
+    if (model.startsWith("models/")) {
+      model = model.replace("models/", "");
+    }
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanApiKey}`;
     const prompt = language && language !== "auto" ? `Please transcribe this audio. The language is ${language}. Output only the transcription text without any preamble.` : "Please transcribe this audio accurately. Output only the transcription text without any preamble.";
     const body = {
       contents: [{
@@ -315,13 +319,16 @@ var TranscriptionService = class {
         body: JSON.stringify(body)
       });
       if (response.status !== 200) {
-        console.error("Gemini Transcription failed:", response.json);
+        console.error(`[DevotionalVoice] Gemini API Error (${response.status}):`, response.json || response.text);
         throw new Error(`Gemini STT Failed: ${response.status}`);
       }
       const text = ((_e = (_d = (_c = (_b = (_a = response.json.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text) || "";
       return { text: text.trim() };
     } catch (error) {
-      console.error("Gemini Transcription error:", error);
+      console.error("[DevotionalVoice] Gemini Transcription error:", error);
+      if (error instanceof Error && error.message.includes("404")) {
+        throw new Error("Gemini API 404: Endpoint not found. Please check model settings.");
+      }
       throw error;
     }
   }

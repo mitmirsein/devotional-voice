@@ -183,8 +183,17 @@ export class TranscriptionService {
     private async transcribeWithGemini(audioBlob: Blob, apiKey: string, language: string): Promise<TranscriptionResult> {
         const arrayBuffer = await audioBlob.arrayBuffer();
         const base64Audio = Buffer.from(arrayBuffer).toString('base64');
-        const model = MODELS['gemini'];
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        
+        const cleanApiKey = apiKey.trim();
+        let model = MODELS['gemini'] || 'gemini-1.5-flash';
+        
+        // Ensure model name doesn't have doubling prefix
+        if (model.startsWith('models/')) {
+            model = model.replace('models/', '');
+        }
+
+        // Use v1beta for widest feature support, but ensure the path is correct
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanApiKey}`;
 
         const prompt = language && language !== 'auto' 
             ? `Please transcribe this audio. The language is ${language}. Output only the transcription text without any preamble.`
@@ -213,14 +222,17 @@ export class TranscriptionService {
             });
 
             if (response.status !== 200) {
-                console.error('Gemini Transcription failed:', response.json);
+                console.error(`[DevotionalVoice] Gemini API Error (${response.status}):`, response.json || response.text);
                 throw new Error(`Gemini STT Failed: ${response.status}`);
             }
 
             const text = response.json.candidates?.[0]?.content?.parts?.[0]?.text || '';
             return { text: text.trim() };
         } catch (error) {
-            console.error('Gemini Transcription error:', error);
+            console.error('[DevotionalVoice] Gemini Transcription error:', error);
+            if (error instanceof Error && error.message.includes('404')) {
+                throw new Error('Gemini API 404: Endpoint not found. Please check model settings.');
+            }
             throw error;
         }
     }
