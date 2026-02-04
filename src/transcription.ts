@@ -113,6 +113,10 @@ export class TranscriptionService {
             throw new Error('Invalid API key format');
         }
 
+        if (serviceProvider === 'gemini') {
+            return await this.transcribeWithGemini(audioBlob, apiKey, language);
+        }
+
         const arrayBuffer = await audioBlob.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
@@ -176,6 +180,51 @@ export class TranscriptionService {
         }
     }
 
+    private async transcribeWithGemini(audioBlob: Blob, apiKey: string, language: string): Promise<TranscriptionResult> {
+        const arrayBuffer = await audioBlob.arrayBuffer();
+        const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+        const model = MODELS['gemini'];
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+        const prompt = language && language !== 'auto' 
+            ? `Please transcribe this audio. The language is ${language}. Output only the transcription text without any preamble.`
+            : "Please transcribe this audio accurately. Output only the transcription text without any preamble.";
+
+        const body = {
+            contents: [{
+                parts: [
+                    { text: prompt },
+                    {
+                        inline_data: {
+                            mime_type: audioBlob.type || "audio/webm",
+                            data: base64Audio
+                        }
+                    }
+                ]
+            }]
+        };
+
+        try {
+            const response = await requestUrl({
+                url: url,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (response.status !== 200) {
+                console.error('Gemini Transcription failed:', response.json);
+                throw new Error(`Gemini STT Failed: ${response.status}`);
+            }
+
+            const text = response.json.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            return { text: text.trim() };
+        } catch (error) {
+            console.error('Gemini Transcription error:', error);
+            throw error;
+        }
+    }
+
     private isValidApiKeyFormat(apiKey: string, provider: ServiceProvider): boolean {
         // Basic validation - check if key has reasonable format
         const trimmedKey = apiKey.trim();
@@ -184,9 +233,9 @@ export class TranscriptionService {
             // OpenAI keys start with 'sk-' and are reasonably long
             return trimmedKey.startsWith('sk-') && trimmedKey.length > 20;
         } else if (provider === 'groq') {
-            // Groq keys can have various formats (gsk_, xai-, etc.)
-            // Just check for reasonable length and no whitespace
             return trimmedKey.length > 20 && !/\s/.test(trimmedKey);
+        } else if (provider === 'gemini') {
+            return trimmedKey.startsWith('AIza') && trimmedKey.length > 30;
         }
         return trimmedKey.length > 10;
     }
@@ -194,16 +243,11 @@ export class TranscriptionService {
     private parseErrorResponse(response: any): TranscriptionError {
         try {
             const json = response.json;
-            if (json?.error?.message) {
-                return {
-                    status: response.status,
-                    message: json.error.message,
-                    details: json.error.type || json.error.code
-                };
-            }
+            // Handle different error formats for different providers
+            const message = json?.error?.message || json?.error || 'Unknown Error';
             return {
                 status: response.status,
-                message: `HTTP ${response.status} Error`,
+                message: message,
                 details: JSON.stringify(json)
             };
         } catch {

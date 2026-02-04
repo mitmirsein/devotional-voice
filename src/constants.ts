@@ -4,29 +4,32 @@
  */
 
 // Service Provider Types
-export type ServiceProvider = 'openai' | 'groq';
+export type ServiceProvider = 'openai' | 'groq' | 'gemini';
 
 // Model configuration per provider
 export const MODELS: Record<ServiceProvider, string> = {
     openai: 'whisper-1',
-    groq: 'whisper-large-v3'
+    groq: 'whisper-large-v3',
+    gemini: 'gemini-1.5-flash'
 } as const;
 
 // API Endpoints
 export const API_ENDPOINTS: Record<ServiceProvider, string> = {
     openai: 'https://api.openai.com/v1/audio/transcriptions',
-    groq: 'https://api.groq.com/openai/v1/audio/transcriptions'
+    groq: 'https://api.groq.com/openai/v1/audio/transcriptions',
+    gemini: 'https://generativelanguage.googleapis.com/v1beta/models'
 } as const;
 
 // API Test Endpoints (for validating API keys)
 export const API_TEST_ENDPOINTS: Record<ServiceProvider, string> = {
     openai: 'https://api.openai.com/v1/models',
-    groq: 'https://api.groq.com/openai/v1/models'
+    groq: 'https://api.groq.com/openai/v1/audio/transcriptions', // Use transcription endpoint for groq test or similar
+    gemini: 'https://generativelanguage.googleapis.com/v1beta/models'
 } as const;
 
 // API Request Configuration
 export const API_CONFIG = {
-    TIMEOUT_MS: 300000, // 5 minutes (increased for long recordings)
+    TIMEOUT_MS: 600000, // 10 minutes (increased for long recordings)
     MAX_FILE_SIZE_MB: 25,
     AUDIO_MIME_TYPE: 'audio/webm'
 } as const;

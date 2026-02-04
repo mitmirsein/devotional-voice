@@ -21,7 +21,7 @@ export class TTSService {
         this.settings = settings;
     }
 
-    async speak(text: string): Promise<void> {
+    async speak(text: string, onProgress?: (progress: number) => void): Promise<void> {
         this.stop();
 
         if (this.settings.provider === 'google') {
@@ -33,19 +33,22 @@ export class TTSService {
             return;
         }
 
-        const audioBuffer = await this.generateAudio(text);
+        const audioBuffer = await this.generateAudio(text, onProgress);
         if (audioBuffer) {
             await this.playAudioBuffer(audioBuffer);
         }
     }
 
-    async generateAudio(text: string): Promise<ArrayBuffer | null> {
+    async generateAudio(text: string, onProgress?: (progress: number) => void): Promise<ArrayBuffer | null> {
+        if (onProgress) onProgress(0.1); // Start
+        let result: ArrayBuffer | null = null;
         if (this.settings.provider === 'openai') {
-            return await this.generateOpenAIAudio(text);
+            result = await this.generateOpenAIAudio(text);
         } else if (this.settings.provider === 'gemini') {
-            return await this.generateGeminiAudio(text);
+            result = await this.generateGeminiAudio(text);
         }
-        return null;
+        if (onProgress) onProgress(1.0); // Complete
+        return result;
     }
 
     stop(): void {

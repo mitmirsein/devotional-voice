@@ -32,19 +32,23 @@ var import_obsidian6 = require("obsidian");
 // src/constants.ts
 var MODELS = {
   openai: "whisper-1",
-  groq: "whisper-large-v3"
+  groq: "whisper-large-v3",
+  gemini: "gemini-1.5-flash"
 };
 var API_ENDPOINTS = {
   openai: "https://api.openai.com/v1/audio/transcriptions",
-  groq: "https://api.groq.com/openai/v1/audio/transcriptions"
+  groq: "https://api.groq.com/openai/v1/audio/transcriptions",
+  gemini: "https://generativelanguage.googleapis.com/v1beta/models"
 };
 var API_TEST_ENDPOINTS = {
   openai: "https://api.openai.com/v1/models",
-  groq: "https://api.groq.com/openai/v1/models"
+  groq: "https://api.groq.com/openai/v1/audio/transcriptions",
+  // Use transcription endpoint for groq test or similar
+  gemini: "https://generativelanguage.googleapis.com/v1beta/models"
 };
 var API_CONFIG = {
-  TIMEOUT_MS: 3e5,
-  // 5 minutes (increased for long recordings)
+  TIMEOUT_MS: 6e5,
+  // 10 minutes (increased for long recordings)
   MAX_FILE_SIZE_MB: 25,
   AUDIO_MIME_TYPE: "audio/webm"
 };
@@ -230,6 +234,9 @@ var TranscriptionService = class {
       new import_obsidian.Notice(ERROR_MESSAGES.API_KEY_INVALID_FORMAT(serviceProvider));
       throw new Error("Invalid API key format");
     }
+    if (serviceProvider === "gemini") {
+      return await this.transcribeWithGemini(audioBlob, apiKey, language);
+    }
     const arrayBuffer = await audioBlob.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const actualFileName = fileName || "recording.webm";
@@ -280,12 +287,52 @@ var TranscriptionService = class {
       throw error;
     }
   }
+  async transcribeWithGemini(audioBlob, apiKey, language) {
+    var _a, _b, _c, _d, _e;
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const base64Audio = Buffer.from(arrayBuffer).toString("base64");
+    const model = MODELS["gemini"];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const prompt = language && language !== "auto" ? `Please transcribe this audio. The language is ${language}. Output only the transcription text without any preamble.` : "Please transcribe this audio accurately. Output only the transcription text without any preamble.";
+    const body = {
+      contents: [{
+        parts: [
+          { text: prompt },
+          {
+            inline_data: {
+              mime_type: audioBlob.type || "audio/webm",
+              data: base64Audio
+            }
+          }
+        ]
+      }]
+    };
+    try {
+      const response = await (0, import_obsidian.requestUrl)({
+        url,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (response.status !== 200) {
+        console.error("Gemini Transcription failed:", response.json);
+        throw new Error(`Gemini STT Failed: ${response.status}`);
+      }
+      const text = ((_e = (_d = (_c = (_b = (_a = response.json.candidates) == null ? void 0 : _a[0]) == null ? void 0 : _b.content) == null ? void 0 : _c.parts) == null ? void 0 : _d[0]) == null ? void 0 : _e.text) || "";
+      return { text: text.trim() };
+    } catch (error) {
+      console.error("Gemini Transcription error:", error);
+      throw error;
+    }
+  }
   isValidApiKeyFormat(apiKey, provider) {
     const trimmedKey = apiKey.trim();
     if (provider === "openai") {
       return trimmedKey.startsWith("sk-") && trimmedKey.length > 20;
     } else if (provider === "groq") {
       return trimmedKey.length > 20 && !/\s/.test(trimmedKey);
+    } else if (provider === "gemini") {
+      return trimmedKey.startsWith("AIza") && trimmedKey.length > 30;
     }
     return trimmedKey.length > 10;
   }
@@ -293,16 +340,10 @@ var TranscriptionService = class {
     var _a;
     try {
       const json = response.json;
-      if ((_a = json == null ? void 0 : json.error) == null ? void 0 : _a.message) {
-        return {
-          status: response.status,
-          message: json.error.message,
-          details: json.error.type || json.error.code
-        };
-      }
+      const message = ((_a = json == null ? void 0 : json.error) == null ? void 0 : _a.message) || (json == null ? void 0 : json.error) || "Unknown Error";
       return {
         status: response.status,
-        message: `HTTP ${response.status} Error`,
+        message,
         details: JSON.stringify(json)
       };
     } catch (e) {
@@ -859,7 +900,7 @@ var TTSService = class {
     this.currentAudio = null;
     this.settings = settings;
   }
-  async speak(text) {
+  async speak(text, onProgress) {
     this.stop();
     if (this.settings.provider === "google") {
       if ("speechSynthesis" in window) {
@@ -869,18 +910,23 @@ var TTSService = class {
       }
       return;
     }
-    const audioBuffer = await this.generateAudio(text);
+    const audioBuffer = await this.generateAudio(text, onProgress);
     if (audioBuffer) {
       await this.playAudioBuffer(audioBuffer);
     }
   }
-  async generateAudio(text) {
+  async generateAudio(text, onProgress) {
+    if (onProgress)
+      onProgress(0.1);
+    let result = null;
     if (this.settings.provider === "openai") {
-      return await this.generateOpenAIAudio(text);
+      result = await this.generateOpenAIAudio(text);
     } else if (this.settings.provider === "gemini") {
-      return await this.generateGeminiAudio(text);
+      result = await this.generateGeminiAudio(text);
     }
-    return null;
+    if (onProgress)
+      onProgress(1);
+    return result;
   }
   stop() {
     if ("speechSynthesis" in window) {
@@ -1166,6 +1212,19 @@ var ProcessingModal = class extends import_obsidian5.Modal {
     contentEl.addClass("voice-writing-processing-modal");
     const container = contentEl.createDiv({ cls: "processing-container" });
     container.createEl("h2", { text: "\u2728 Generating Devotional..." });
+    this.progressContainer = container.createDiv({ cls: "progress-bar-container" });
+    this.progressContainer.style.width = "100%";
+    this.progressContainer.style.height = "8px";
+    this.progressContainer.style.backgroundColor = "var(--background-secondary)";
+    this.progressContainer.style.borderRadius = "4px";
+    this.progressContainer.style.marginBottom = "10px";
+    this.progressContainer.style.display = "none";
+    this.progressBar = this.progressContainer.createDiv({ cls: "progress-bar" });
+    this.progressBar.style.width = "0%";
+    this.progressBar.style.height = "100%";
+    this.progressBar.style.backgroundColor = "var(--interactive-accent)";
+    this.progressBar.style.borderRadius = "4px";
+    this.progressBar.style.transition = "width 0.3s ease";
     this.contentContainer = container.createDiv({ cls: "streaming-content-container" });
     this.contentContainer.style.maxHeight = "400px";
     this.contentContainer.style.overflowY = "auto";
@@ -1180,6 +1239,13 @@ var ProcessingModal = class extends import_obsidian5.Modal {
     if (this.streamingTextEl) {
       this.streamingTextEl.setText(this.streamingTextEl.getText() + text);
       this.contentContainer.scrollTop = this.contentContainer.scrollHeight;
+    }
+  }
+  setProgress(progress) {
+    if (this.progressContainer && this.progressBar) {
+      this.progressContainer.style.display = "block";
+      const percentage = Math.min(100, Math.max(0, progress * 100));
+      this.progressBar.style.width = `${percentage}%`;
     }
   }
   onClose() {
@@ -1392,7 +1458,14 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       const blob = await this.recorder.stopRecording();
       this.updateStatusBar("Transcribing...");
       new import_obsidian6.Notice("\u{1F4DD} \uC74C\uC131 \uBCC0\uD658 \uC911...");
-      const apiKey = this.settings.serviceProvider === "openai" ? this.settings.openaiApiKey : this.settings.groqApiKey;
+      let apiKey = "";
+      if (this.settings.serviceProvider === "openai") {
+        apiKey = this.settings.openaiApiKey;
+      } else if (this.settings.serviceProvider === "groq") {
+        apiKey = this.settings.groqApiKey;
+      } else if (this.settings.serviceProvider === "gemini") {
+        apiKey = this.settings.geminiApiKey;
+      }
       const result = await this.transcriptionService.transcribe(blob, apiKey, this.settings.language, this.settings.serviceProvider);
       await this.processDevotional(result.text);
     } catch (error) {
@@ -1421,6 +1494,38 @@ var DevotionalVoicePlugin = class extends import_obsidian6.Plugin {
       return;
     }
     await this.processDevotional(content);
+  }
+  /**
+   * Read Aloud with Progress UI
+   */
+  async readAloud(editor) {
+    const selectedText = editor.getSelection();
+    const content = editor.getValue();
+    let textToSpeak = "";
+    if (selectedText && selectedText.trim().length > 0) {
+      textToSpeak = selectedText.trim();
+    } else {
+      const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
+      if (ttsMatch && ttsMatch[1]) {
+        textToSpeak = ttsMatch[1].trim();
+      }
+    }
+    if (!textToSpeak) {
+      new import_obsidian6.Notice("\uC77D\uC744 \uD14D\uC2A4\uD2B8\uB97C \uC120\uD0DD\uD558\uAC70\uB098 \uC0DD\uC131\uB41C \uBB35\uC0C1\uAE00\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.");
+      return;
+    }
+    new import_obsidian6.Notice("\u{1F50A} TTS \uC7AC\uC0DD \uC900\uBE44 \uC911...");
+    const processingModal = new ProcessingModal(this.app);
+    processingModal.open();
+    processingModal.appendContent(`### \u{1F50A} TTS \uC74C\uC131 \uC0DD\uC131 \uC911...
+
+\uB300\uBCF8: ${textToSpeak.substring(0, 100)}...`);
+    await this.ttsService.speak(textToSpeak, (progress) => {
+      processingModal.setProgress(progress);
+      if (progress >= 1) {
+        setTimeout(() => processingModal.close(), 1e3);
+      }
+    });
   }
   async generateTtsScriptFromNote() {
     const activeFile = this.app.workspace.getActiveFile();
@@ -1537,25 +1642,8 @@ ${referenceSection}${ttsBlock}
       this.updateStatusBar("Error");
     }
   }
-  async readAloud(editor) {
-    const selectedText = editor.getSelection();
-    if (selectedText && selectedText.trim().length > 0) {
-      new import_obsidian6.Notice("\u{1F50A} \uC120\uD0DD \uD14D\uC2A4\uD2B8 \uC7AC\uC0DD \uC911...");
-      await this.ttsService.speak(selectedText);
-      return;
-    }
-    const content = editor.getValue();
-    const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
-    if (ttsMatch && ttsMatch[1]) {
-      new import_obsidian6.Notice("\u{1F50A} \uBB35\uC0C1 \uB300\uBCF8 \uC7AC\uC0DD \uC911...");
-      await this.ttsService.speak(ttsMatch[1].trim());
-      return;
-    }
-    new import_obsidian6.Notice("\uC77D\uC744 \uD14D\uC2A4\uD2B8\uB97C \uC120\uD0DD\uD558\uAC70\uB098 \uC0DD\uC131\uB41C \uBB35\uC0C1\uAE00\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.");
-  }
   /**
-   * Save TTS audio file to the same folder as the active note
-   * Converts to MP3 if ffmpeg is available
+   * Save TTS audio file with Progress Bar
    */
   async saveAudioToNote(editor) {
     const content = editor.getValue();
@@ -1566,7 +1654,15 @@ ${referenceSection}${ttsBlock}
     }
     const ttsScript = ttsMatch[1].trim();
     new import_obsidian6.Notice("\u{1F50A} \uC624\uB514\uC624 \uD30C\uC77C \uC0DD\uC131 \uC911...");
-    const audioBuffer = await this.ttsService.generateAudio(ttsScript);
+    const processingModal = new ProcessingModal(this.app);
+    processingModal.open();
+    processingModal.appendContent(`### \u{1F4BE} \uC624\uB514\uC624 \uD30C\uC77C \uC800\uC7A5 \uC911...
+
+\uB300\uBCF8: ${ttsScript.substring(0, 50)}...`);
+    const audioBuffer = await this.ttsService.generateAudio(ttsScript, (progress) => {
+      processingModal.setProgress(progress);
+    });
+    processingModal.close();
     if (!audioBuffer) {
       new import_obsidian6.Notice("\uC624\uB514\uC624 \uC0DD\uC131 \uC2E4\uD328");
       return;
@@ -1678,7 +1774,7 @@ var DevotionalVoiceSettingTab = class extends import_obsidian6.PluginSettingTab 
     containerEl.empty();
     containerEl.createEl("h2", { text: "\u{1F4D6} Devotional Voice Settings" });
     containerEl.createEl("h3", { text: "\u{1F3A4} \uC74C\uC131 \uC778\uC2DD (STT)" });
-    new import_obsidian6.Setting(containerEl).setName("Service Provider").setDesc("OpenAI \uB610\uB294 Groq").addDropdown((d) => d.addOption("openai", "OpenAI").addOption("groq", "Groq").setValue(this.plugin.settings.serviceProvider).onChange(async (v) => {
+    new import_obsidian6.Setting(containerEl).setName("Service Provider").setDesc("Whisper(OpenAI/Groq) \uB610\uB294 Google Gemini (\uB2E4\uAD6D\uC5B4 \uCD5C\uC801)").addDropdown((d) => d.addOption("openai", "OpenAI").addOption("groq", "Groq").addOption("gemini", "Gemini STT").setValue(this.plugin.settings.serviceProvider).onChange(async (v) => {
       this.plugin.settings.serviceProvider = v;
       await this.plugin.saveSettings();
     }));

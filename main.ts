@@ -289,7 +289,16 @@ export default class DevotionalVoicePlugin extends Plugin {
 			const blob = await this.recorder.stopRecording();
 			this.updateStatusBar('Transcribing...');
 			new Notice('📝 음성 변환 중...');
-			const apiKey = this.settings.serviceProvider === 'openai' ? this.settings.openaiApiKey : this.settings.groqApiKey;
+			
+			let apiKey = '';
+			if (this.settings.serviceProvider === 'openai') {
+				apiKey = this.settings.openaiApiKey;
+			} else if (this.settings.serviceProvider === 'groq') {
+				apiKey = this.settings.groqApiKey;
+			} else if (this.settings.serviceProvider === 'gemini') {
+				apiKey = this.settings.geminiApiKey;
+			}
+
 			const result = await this.transcriptionService.transcribe(blob, apiKey, this.settings.language, this.settings.serviceProvider);
 			await this.processDevotional(result.text);
 		} catch (error) {
@@ -311,6 +320,42 @@ export default class DevotionalVoicePlugin extends Plugin {
 		const content = await this.app.vault.read(activeFile);
 		if (!content || content.trim().length === 0) { new Notice('노트가 비어있습니다.'); return; }
 		await this.processDevotional(content);
+	}
+
+	/**
+	 * Read Aloud with Progress UI
+	 */
+	async readAloud(editor: Editor) {
+		const selectedText = editor.getSelection();
+		const content = editor.getValue();
+		let textToSpeak = '';
+		
+		if (selectedText && selectedText.trim().length > 0) {
+			textToSpeak = selectedText.trim();
+		} else {
+			const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
+			if (ttsMatch && ttsMatch[1]) {
+				textToSpeak = ttsMatch[1].trim();
+			}
+		}
+
+		if (!textToSpeak) {
+			new Notice('읽을 텍스트를 선택하거나 생성된 묵상글이 필요합니다.');
+			return;
+		}
+
+		new Notice('🔊 TTS 재생 준비 중...');
+		
+		const processingModal = new ProcessingModal(this.app);
+		processingModal.open();
+		processingModal.appendContent(`### 🔊 TTS 음성 생성 중...\n\n대본: ${textToSpeak.substring(0, 100)}...`);
+
+		await this.ttsService.speak(textToSpeak, (progress) => {
+			processingModal.setProgress(progress);
+			if (progress >= 1.0) {
+				setTimeout(() => processingModal.close(), 1000);
+			}
+		});
 	}
 
 	async generateTtsScriptFromNote() {
@@ -429,26 +474,8 @@ export default class DevotionalVoicePlugin extends Plugin {
 		}
 	}
 
-	async readAloud(editor: Editor) {
-		const selectedText = editor.getSelection();
-		if (selectedText && selectedText.trim().length > 0) {
-			new Notice('🔊 선택 텍스트 재생 중...');
-			await this.ttsService.speak(selectedText);
-			return;
-		}
-		const content = editor.getValue();
-		const ttsMatch = content.match(/%%TTS-SCRIPT:(.*?)%%/s);
-		if (ttsMatch && ttsMatch[1]) {
-			new Notice('🔊 묵상 대본 재생 중...');
-			await this.ttsService.speak(ttsMatch[1].trim());
-			return;
-		}
-		new Notice('읽을 텍스트를 선택하거나 생성된 묵상글이 필요합니다.');
-	}
-
 	/**
-	 * Save TTS audio file to the same folder as the active note
-	 * Converts to MP3 if ffmpeg is available
+	 * Save TTS audio file with Progress Bar
 	 */
 	async saveAudioToNote(editor: Editor) {
 		const content = editor.getValue();
@@ -461,7 +488,16 @@ export default class DevotionalVoicePlugin extends Plugin {
 		const ttsScript = ttsMatch[1].trim();
 		new Notice('🔊 오디오 파일 생성 중...');
 
-		const audioBuffer = await this.ttsService.generateAudio(ttsScript);
+		const processingModal = new ProcessingModal(this.app);
+		processingModal.open();
+		processingModal.appendContent(`### 💾 오디오 파일 저장 중...\n\n대본: ${ttsScript.substring(0, 50)}...`);
+
+		const audioBuffer = await this.ttsService.generateAudio(ttsScript, (progress) => {
+			processingModal.setProgress(progress);
+		});
+		
+		processingModal.close();
+
 		if (!audioBuffer) {
 			new Notice('오디오 생성 실패');
 			return;
@@ -479,7 +515,6 @@ export default class DevotionalVoicePlugin extends Plugin {
 		const wavFilePath = folderPath ? `${folderPath}/${wavFileName}` : wavFileName;
 		
 		const mp3FileName = `Devotional_Audio_${timestamp}.mp3`;
-		// const mp3FilePath = folderPath ? `${folderPath}/${mp3FileName}` : mp3FileName;
 
 		const wavFile = await this.app.vault.createBinary(wavFilePath, audioBuffer);
 
@@ -569,7 +604,7 @@ class DevotionalVoiceSettingTab extends PluginSettingTab {
 		containerEl.createEl('h2', { text: '📖 Devotional Voice Settings' });
 
 		containerEl.createEl('h3', { text: '🎤 음성 인식 (STT)' });
-		new Setting(containerEl).setName('Service Provider').setDesc('OpenAI 또는 Groq').addDropdown(d => d.addOption('openai', 'OpenAI').addOption('groq', 'Groq').setValue(this.plugin.settings.serviceProvider).onChange(async v => { this.plugin.settings.serviceProvider = v as ServiceProvider; await this.plugin.saveSettings(); }));
+		new Setting(containerEl).setName('Service Provider').setDesc('Whisper(OpenAI/Groq) 또는 Google Gemini (다국어 최적)').addDropdown(d => d.addOption('openai', 'OpenAI').addOption('groq', 'Groq').addOption('gemini', 'Gemini STT').setValue(this.plugin.settings.serviceProvider).onChange(async v => { this.plugin.settings.serviceProvider = v as ServiceProvider; await this.plugin.saveSettings(); }));
 		new Setting(containerEl).setName('OpenAI API Key')
 			.setDesc(document.createDocumentFragment())
 			.then(s => {

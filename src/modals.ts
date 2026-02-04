@@ -82,7 +82,7 @@ export class RecordingModal extends Modal {
         if (!this.analyser) return;
 
         this.animationId = requestAnimationFrame(() => this.drawVisualizer());
-        this.analyser.getByteFrequencyData(this.dataArray);
+        this.analyser.getByteFrequencyData(this.dataArray as any);
 
         const canvas = this.canvasCtx.canvas;
         const width = canvas.width;
@@ -131,6 +131,8 @@ export class RecordingModal extends Modal {
 export class ProcessingModal extends Modal {
     private contentContainer: HTMLElement;
     private streamingTextEl: HTMLElement;
+    private progressBar: HTMLElement;
+    private progressContainer: HTMLElement;
 
     constructor(app: App) {
         super(app);
@@ -145,6 +147,22 @@ export class ProcessingModal extends Modal {
 
         container.createEl('h2', { text: '✨ Generating Devotional...' });
         
+        // Progress Bar
+        this.progressContainer = container.createDiv({ cls: 'progress-bar-container' });
+        this.progressContainer.style.width = '100%';
+        this.progressContainer.style.height = '8px';
+        this.progressContainer.style.backgroundColor = 'var(--background-secondary)';
+        this.progressContainer.style.borderRadius = '4px';
+        this.progressContainer.style.marginBottom = '10px';
+        this.progressContainer.style.display = 'none'; // Hidden by default
+
+        this.progressBar = this.progressContainer.createDiv({ cls: 'progress-bar' });
+        this.progressBar.style.width = '0%';
+        this.progressBar.style.height = '100%';
+        this.progressBar.style.backgroundColor = 'var(--interactive-accent)';
+        this.progressBar.style.borderRadius = '4px';
+        this.progressBar.style.transition = 'width 0.3s ease';
+
         // Scrollable content area
         this.contentContainer = container.createDiv({ cls: 'streaming-content-container' });
         this.contentContainer.style.maxHeight = '400px';
@@ -164,6 +182,14 @@ export class ProcessingModal extends Modal {
             this.streamingTextEl.setText(this.streamingTextEl.getText() + text);
             // Auto scroll to bottom
             this.contentContainer.scrollTop = this.contentContainer.scrollHeight;
+        }
+    }
+
+    setProgress(progress: number) {
+        if (this.progressContainer && this.progressBar) {
+            this.progressContainer.style.display = 'block';
+            const percentage = Math.min(100, Math.max(0, progress * 100));
+            this.progressBar.style.width = `${percentage}%`;
         }
     }
 
