@@ -1,8 +1,8 @@
-# 📖 Devotional Voice Plugin for Obsidian v0.5.0
+# 📖 Devotional Voice Plugin for Obsidian v0.5.1
 
-음성, 텍스트, 또는 노트 전체를 입력으로 받아 **AI 기반 묵상글**을 생성하고, **TTS(Text-to-Speech)**로 낭독해주는 Obsidian 플러그인입니다. v0.5.0 업데이트로 더욱 강력해졌습니다.
+음성, 텍스트, 또는 노트 전체를 입력으로 받아 **AI 기반 묵상글**을 생성하고, **TTS(Text-to-Speech)**로 낭독해주는 Obsidian 플러그인입니다. v0.5.1 업데이트로 더욱 강력해졌습니다.
 
-## ✨ 주요 기능 (v0.5.0 업데이트)
+## ✨ 주요 기능 (v0.5.1 업데이트)
 
 - **🎙️ Google Gemini STT 지원 (New)**: Whisper 외에 Google Gemini를 음성 인식 엔진으로 사용할 수 있습니다. 한국어 인식 및 장문 처리에 최적화되어 있습니다.
 - **⏳ TTS 진행률 표시 (New)**: TTS 오디오 생성 시 진행 바(Progress Bar)를 통해 대기 시간을 시각적으로 확인합니다.
