@@ -40,15 +40,31 @@ export class TTSService {
     }
 
     async generateAudio(text: string, onProgress?: (progress: number) => void): Promise<ArrayBuffer | null> {
+        const sanitizedText = this.sanitizeText(text);
         if (onProgress) onProgress(0.1); // Start
         let result: ArrayBuffer | null = null;
         if (this.settings.provider === 'openai') {
-            result = await this.generateOpenAIAudio(text);
+            result = await this.generateOpenAIAudio(sanitizedText);
         } else if (this.settings.provider === 'gemini') {
-            result = await this.generateGeminiAudio(text);
+            result = await this.generateGeminiAudio(sanitizedText);
         }
         if (onProgress) onProgress(1.0); // Complete
         return result;
+    }
+
+    /**
+     * Remove stage directions/comments in parentheses or brackets
+     */
+    private sanitizeText(text: string): string {
+        if (!text) return '';
+        
+        // Remove text in parentheses (...) or brackets [...]
+        // This targets stage directions like (background music starts) or [In a calm voice]
+        return text
+            .replace(/\([^)]*\)/g, '')
+            .replace(/\[[^\]]*\]/g, '')
+            .replace(/\s+/g, ' ') // Clean up extra spaces
+            .trim();
     }
 
     stop(): void {

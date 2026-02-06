@@ -43,7 +43,11 @@ interface DevotionalVoiceSettings {
 
 const DEFAULT_PROMPT_HINT = `당신은 탁월한 영성을 지닌 신학자이자, 청중의 마음을 위로하는 설교자입니다.
 사용자의 묵상 내용과 관련 노트를 바탕으로, 깊이 있는 신학적 통찰과 따뜻한 목회적 적용이 담긴 묵상글을 작성해 주세요.
-반드시 JSON 형식({"markdown":"...", "ttsScript":"..."})으로 출력.
+
+## 출력 형식
+1. 묵상글 본문 (Markdown)
+2. 구분자: |||TTS_SCRIPT_START||| (한 줄 전체)
+3. TTS 대본 (읽을 멘트만 작성. 지문/괄호 절대 금지)
 
 언어: 한국어`;
 
